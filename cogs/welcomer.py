@@ -16,8 +16,6 @@ class UserWelcomer(commands.Cog):
         self.logger = logging.getLogger("cogs.UserWelcomer")
         self._guild: discord.Guild = self.bot.get_guild(864004899783180308)
 
-        self._rotating_presence_time.start()
-
     async def _generate_messages_and_files(self, member: discord.Member) -> Union[str, discord.File]:
         guild_member: List[discord.Member] = self._guild.members
         real_members = 0
