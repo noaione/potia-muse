@@ -32,6 +32,10 @@ def get_indexed(data: list, n: int):
         return None
 
 
+def rounding(number: float):
+    return int(round(number))
+
+
 def complex_walk(dictionary: T.Union[dict, list], paths: str):
     expanded_paths = paths.split(".")
     skip_it = False
