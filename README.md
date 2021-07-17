@@ -33,3 +33,7 @@ Semua fitur yang dijelaskan di sini membutuhkan modifikasi berat jika ingin di d
 - Fitur untuk laporan kopi kanan (Copyright IP Infringement)
 - **TODO**: Mod logs support (Deleted messages/edit/welcome/leave/etc)
 - **TODO**: Moderation tools
+
+
+#### Fun fact
+Bot ini dibuat dengan bantuan [AI](https://copilot.github.com/) :smile:
