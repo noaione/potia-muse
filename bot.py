@@ -1,0 +1,412 @@
+import asyncio
+from datetime import datetime, timedelta, timezone
+import functools
+import logging
+import os
+import pathlib
+import sys
+import time
+
+import discord
+from discord.ext import commands
+
+from phelper.bot import PotiaBot
+from phelper.puppeeter import PuppeeterGenerator
+from phelper.redis import RedisBridge
+from phelper.utils import HelpGenerator, __version__, prefixes_with_data, read_files
+from phelper.welcomer import WelcomeGenerator
+
+logging.getLogger("websockets").setLevel(logging.WARNING)
+
+cogs_list = ["cogs." + x.replace(".py", "") for x in os.listdir("cogs") if x.endswith(".py")]
+
+logger = logging.getLogger()
+logging.basicConfig(
+    level=logging.DEBUG,
+    handlers=[],
+    format="[%(asctime)s] - (%(name)s)[%(levelname)s](%(funcName)s): %(message)s",  # noqa: E501
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+
+console = logging.StreamHandler(sys.stdout)
+console.setLevel(logging.INFO)
+console_formatter = logging.Formatter("[%(levelname)s] (%(name)s): %(funcName)s: %(message)s")
+console.setFormatter(console_formatter)
+logger.addHandler(console)
+
+# Check if Python3.7+
+# Refer: https://docs.python.org/3/whatsnew/3.7.html#asyncio
+PY37 = sys.version_info >= (3, 7)
+
+# Handle the new Intents.
+discord_ver_tuple = tuple([int(ver) for ver in discord.__version__.split(".")])
+DISCORD_INTENTS = None
+if discord_ver_tuple >= (1, 5, 0):
+    logger.info("Detected discord.py version 1.5.0, using the new Intents system...")
+    # Enable all except Presences.
+    DISCORD_INTENTS = discord.Intents.all()
+
+
+async def initialize_bot(loop: asyncio.AbstractEventLoop):
+    logger.info("Looking up config...")
+    config = await read_files("config.json")
+
+    if "redisdb" not in config:
+        logger.error("Redis DB is not setup, please setup Redis before continuing!")
+        return sys.exit(1)
+    if not config["redisdb"]:
+        logger.error("Redis DB is not setup, please setup Redis before continuing!")
+        return sys.exit(1)
+    redis_conf = config["redisdb"]
+    if "ip_hostname" not in redis_conf or "port" not in redis_conf:
+        logger.error("Redis DB is not setup, please setup Redis before continuing!")
+        return sys.exit(1)
+    if not redis_conf["ip_hostname"] or not redis_conf["port"]:
+        logger.error("Redis DB is not setup, please setup Redis before continuing!")
+        return sys.exit(1)
+
+    default_prefix = config["prefix"]
+    redis_conn = RedisBridge(
+        redis_conf["ip_hostname"], redis_conf["port"], redis_conf.get("password", None), loop
+    )
+    logger.info("Connecting to RedisDB...")
+    await redis_conn.connect()
+    logger.info("Connected to RedisDB!")
+    logger.info("Fetching prefixes data...")
+    srv_prefixes = await redis_conn.getalldict("potiapre_*")
+    fmt_prefixes = {}
+    for srv, pre in srv_prefixes.items():
+        fmt_prefixes[srv[9:]] = pre
+
+    logger.info("Preparing puppeeter")
+    puppet_gen = PuppeeterGenerator(loop)
+    await puppet_gen.init()
+    await puppet_gen.bind(WelcomeGenerator)
+    # Bind another...
+    # await puppet_gen.bind(...)
+
+    cwd = str(pathlib.Path(__file__).parent.absolute())
+
+    bot_description = "Sebuah bot pemantau server official Muse Indonesia\nDibuat oleh N4O#8868"
+    prefixes = functools.partial(prefixes_with_data, prefixes_data=fmt_prefixes, default=default_prefix)
+    if discord_ver_tuple >= (1, 5, 0):
+        bot = PotiaBot(
+            command_prefix=prefixes,
+            description=bot_description,
+            intents=DISCORD_INTENTS,
+            case_insensitive=True,
+            loop=loop,
+        )
+    else:
+        bot = PotiaBot(command_prefix=prefixes, description=bot_description, case_insensitive=True, loop=loop)
+    bot.remove_command("help")
+    bot.logger.info("Bot is now loaded, now using bot internal logger for loggin.")
+    bot.bot_config = config
+    bot.semver = __version__
+    bot.fcwd = cwd
+    bot.prefix = default_prefix
+    bot.logger.info("Binding Redis...")
+    bot.redis = redis_conn
+    bot.logger.info("Binding Puppeeter...")
+    bot.puppet = puppet_gen
+    return bot
+
+
+# Initiate everything
+logger.info(f"Initiating bot v{__version__}...")
+logger.info("Setting up loop")
+async_loop = asyncio.get_event_loop()
+bot: PotiaBot = async_loop.run_until_complete(initialize_bot(async_loop))
+wib_tz = timezone(timedelta(hours=7))
+if bot is None:
+    sys.exit(1)
+
+
+@bot.event
+async def on_ready():
+    bot.logger.info("---------------------------------------------------------------")
+    bot.logger.info("Bot has now established connection with Discord!")
+    current_time = datetime.now(tz=wib_tz).strftime("%d/%m %H:%M WIB")
+    await bot.modify_activity(current_time)
+    bot.logger.info("> Loading all avaialble cogs...")
+    for load_this in cogs_list:
+        try:
+            bot.logger.info(f"Loading module/cog: {load_this}")
+            bot.load_extension(load_this)
+            bot.logger.info(f"{load_this} module/cog is now loaded!")
+        except commands.ExtensionError as enoff:
+            bot.logger.error(f"Failed to load {load_this} module/cogs.")
+            bot.echo_error(enoff)
+    bot.logger.info("> All availabel cogs/modules are now loaded!")
+    bot.logger.info("---------------------------------------------------------------")
+    bot.logger.info("Bot Ready!")
+    bot.logger.info("Using Python {}".format(sys.version))
+    bot.logger.info("And Using Discord.py v{}".format(discord.__version__))
+    bot.logger.info("---------------------------------------------------------------")
+    bot.logger.info("Bot Info:")
+    bot.logger.info("Username: {}".format(bot.user.name))
+    bot.logger.info("Client ID: {}".format(bot.user.id))
+    bot.logger.info("Running PotiaBot version: {}".format(__version__))
+    bot.logger.info("---------------------------------------------------------------")
+
+
+def ping_emote(t_t):
+    if t_t < 50:
+        emote = ":race_car:"
+    elif t_t >= 50 and t_t < 200:
+        emote = ":blue_car:"
+    elif t_t >= 200 and t_t < 500:
+        emote = ":racehorse:"
+    elif t_t >= 200 and t_t < 500:
+        emote = ":runner:"
+    elif t_t >= 500 and t_t < 3500:
+        emote = ":walking:"
+    elif t_t >= 3500:
+        emote = ":snail:"
+    return emote
+
+
+@bot.command()
+async def ping(ctx):
+    """
+    pong!
+    """
+    channel = ctx.message.channel
+    bot.logger.info("checking websocket...")
+    ws_ping = bot.latency
+    irnd = lambda t: int(round(t))  # noqa: E731
+
+    text_res = ":satellite: Ping Results :satellite:"
+    bot.logger.info("checking discord itself.")
+    t1_dis = time.perf_counter()
+    async with channel.typing():
+        t2_dis = time.perf_counter()
+        dis_ping = irnd((t2_dis - t1_dis) * 1000)
+        bot.logger.info("generating results....")
+        bot.logger.debug("generating discord res")
+        text_res += f"\n{ping_emote(dis_ping)} Discord: `{dis_ping}ms`"
+
+        bot.logger.debug("generating websocket res")
+        if ws_ping != float("nan"):
+            ws_time = irnd(ws_ping * 1000)
+            ws_res = f"{ping_emote(ws_time)} Websocket `{ws_time}ms`"
+        else:
+            ws_res = ":x: Websocket: `nan`"
+        text_res += f"\n{ws_res}"
+        await channel.send(content=text_res)
+
+
+@bot.command()
+@commands.is_owner()
+async def reload(ctx, *, cogs=None):
+    """
+    Restart salah satu module bot, owner only
+    """
+    if not cogs:
+        helpcmd = HelpGenerator(
+            bot,
+            ctx,
+            "Reload",
+            desc="Reload module bot.",
+        )
+        helpcmd.embed.add_field(
+            name="Module/Cogs List",
+            value="\n".join(["- " + cl for cl in cogs_list]),
+            inline=False,
+        )
+        return await ctx.send(embed=helpcmd.get())
+    if not cogs.startswith("cogs."):
+        cogs = "cogs." + cogs
+    bot.logger.info(f"trying to reload {cogs}")
+    msg = await ctx.send("Please wait, reloading module...")
+    try:
+        bot.logger.info(f"Re-loading {cogs}")
+        bot.reload_extension(cogs)
+        bot.logger.info(f"reloaded {cogs}")
+    except commands.ExtensionNotLoaded:
+        await msg.edit(content="Failed to reload module, trying to load it...")
+        bot.logger.warning(f"{cogs} haven't been loaded yet...")
+        try:
+            bot.logger.info(f"trying to load {cogs}")
+            bot.load_extension(cogs)
+            bot.logger.info(f"{cogs} loaded")
+        except commands.ExtensionFailed as cer:
+            bot.logger.error(f"failed to load {cogs}")
+            bot.echo_error(cer)
+            return await msg.edit(content="Failed to (re)load module, please check bot logs.")
+        except commands.ExtensionNotFound:
+            bot.logger.warning(f"{cogs} doesn't exist.")
+            return await msg.edit(content="Cannot find that module.")
+    except commands.ExtensionNotFound:
+        bot.logger.warning(f"{cogs} doesn't exist.")
+        return await msg.edit(content="Cannot find that module.")
+    except commands.ExtensionFailed as cef:
+        bot.logger.error(f"failed to reload {cogs}")
+        bot.echo_error(cef)
+        return await msg.edit(content="Failed to (re)load module, please check bot logs.")
+
+    await msg.edit(content=f"Successfully (re)loaded `{cogs}` module.")
+
+
+@bot.command()
+@commands.is_owner()
+async def load(ctx, *, cogs=None):
+    """
+    Load salah satu module bot, owner only
+    """
+    if not cogs:
+        helpcmd = HelpGenerator(
+            bot,
+            ctx,
+            "Load",
+            desc="Load module bot.",
+        )
+        helpcmd.embed.add_field(
+            name="Module/Cogs List",
+            value="\n".join(["- " + cl for cl in cogs_list]),
+            inline=False,
+        )
+        return await ctx.send(embed=helpcmd.get())
+    if not cogs.startswith("cogs."):
+        cogs = "cogs." + cogs
+    bot.logger.info(f"trying to load {cogs}")
+    msg = await ctx.send("Please wait, loading module...")
+    try:
+        bot.logger.info(f"loading {cogs}")
+        bot.load_extension(cogs)
+        bot.logger.info(f"loaded {cogs}")
+    except commands.ExtensionAlreadyLoaded:
+        bot.logger.warning(f"{cogs} already loaded.")
+        return await msg.edit(content="Module already loaded.")
+    except commands.ExtensionNotFound:
+        bot.logger.warning(f"{cogs} doesn't exist.")
+        return await msg.edit(content="Cannot find that module.")
+    except commands.ExtensionFailed as cef:
+        bot.logger.error(f"failed to load {cogs}")
+        bot.echo_error(cef)
+        return await msg.edit(content="Failed to load module, please check bot logs.")
+
+    await msg.edit(content=f"Successfully loaded `{cogs}` module.")
+
+
+@bot.command()
+@commands.is_owner()
+async def unload(ctx, *, cogs=None):
+    """
+    Unload salah satu module bot, owner only
+    """
+    if not cogs:
+        helpcmd = HelpGenerator(
+            bot,
+            ctx,
+            "Unload",
+            desc="Unload module bot.",
+        )
+        helpcmd.embed.add_field(
+            name="Module/Cogs List",
+            value="\n".join(["- " + cl for cl in cogs_list]),
+            inline=False,
+        )
+        return await ctx.send(embed=helpcmd.get())
+    if not cogs.startswith("cogs."):
+        cogs = "cogs." + cogs
+    bot.logger.info(f"trying to unload {cogs}")
+    msg = await ctx.send("Please wait, unloading module...")
+    try:
+        bot.logger.info(f"unloading {cogs}")
+        bot.unload_extension(cogs)
+        bot.logger.info(f"unloaded {cogs}")
+    except commands.ExtensionNotFound:
+        bot.logger.warning(f"{cogs} doesn't exist.")
+        return await msg.edit(content="Cannot find that module.")
+    except commands.ExtensionNotLoaded:
+        bot.logger.warning(f"{cogs} aren't loaded yet.")
+        return await msg.edit(content="Module not loaded yet.")
+    except commands.ExtensionFailed as cef:
+        bot.logger.error(f"failed to unload {cogs}")
+        bot.echo_error(cef)
+        return await msg.edit(content="Failed to unload module, please check bot logs.")
+
+    await msg.edit(content=f"Successfully unloaded `{cogs}` module.")
+
+
+# All of the code from here are mainly a copy of discord.Client.run()
+# function, which have been readjusted to fit my needs.
+async def run_bot(*args, **kwargs):
+    try:
+        await bot.start(*args, **kwargs)
+    finally:
+        await bot.close()
+
+
+def stop_stuff_on_completion(loop: asyncio.AbstractEventLoop):
+    bot.logger.info("Closing queue loop...")
+    if hasattr(bot, "puppet") and bot.puppet is not None:
+        loop.run_until_complete(bot.puppet.close())
+    bot.logger.info("Closing Redis Connection...")
+    loop.run_until_complete(bot.redis.close())
+    loop.stop()
+
+
+def cancel_all_tasks(loop):
+    """A copy of discord.Client _cancel_tasks function
+
+    :param loop: [description]
+    :type loop: [type]
+    """
+    try:
+        try:
+            if PY37:
+                # Silence the deprecation notice
+                task_retriever = asyncio.all_tasks
+            else:
+                task_retriever = asyncio.Task.all_tasks
+        except AttributeError:
+            # future proofing for 3.9 I guess
+            task_retriever = asyncio.all_tasks
+
+        tasks = {t for t in task_retriever(loop=loop) if not t.done()}
+
+        if not tasks:
+            return
+
+        bot.logger.info("Cleaning up after %d tasks.", len(tasks))
+        for task in tasks:
+            task.cancel()
+
+        loop.run_until_complete(asyncio.gather(*tasks, return_exceptions=True))
+        bot.logger.info("All tasks finished cancelling.")
+
+        for task in tasks:
+            if task.cancelled():
+                continue
+            if task.exception() is not None:
+                loop.call_exception_handler(
+                    {
+                        "message": "Unhandled exception during Client.run shutdown.",
+                        "exception": task.exception(),
+                        "task": task,
+                    }
+                )
+        if sys.version_info >= (3, 6):
+            loop.run_until_complete(loop.shutdown_asyncgens())
+    finally:
+        bot.logger.info("Closing the event loop.")
+
+
+future = asyncio.ensure_future(run_bot(bot.bot_config["token"], bot=True, reconnect=True))
+try:
+    async_loop.run_forever()
+    # bot.run()
+except (KeyboardInterrupt, SystemExit, SystemError):
+    bot.logger.info("Received signal to terminate bot.")
+finally:
+    bot.logger.info("Cleaning up tasks.")
+    cancel_all_tasks(async_loop)
+    stop_stuff_on_completion(async_loop)
+
+if not future.cancelled():
+    try:
+        future.result()
+    except KeyboardInterrupt:
+        pass

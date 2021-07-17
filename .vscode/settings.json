@@ -1,0 +1,28 @@
+{
+    "python.linting.flake8Enabled": true,
+    "python.linting.mypyEnabled": false,
+    "python.linting.flake8Args": [
+        "--max-line-length",
+        "110",
+        "--ignore=E203,W503,W0621,W0703,W1203"
+    ],
+    "[python]": {
+        "editor.formatOnSave": true,
+    },
+    "python.formatting.provider": "black",
+    "python.formatting.blackArgs": [
+        "-l",
+        "110",
+        "--target-version=py38"
+    ],
+    "python.analysis.diagnosticMode": "workspace",
+    "python.languageServer": "Pylance",
+    "python.linting.pydocstyleEnabled": false,
+    "autoDocstring.docstringFormat": "sphinx",
+    "python.linting.pydocstyleArgs": [
+        "--ignore=D105"
+    ],
+    "python.linting.banditEnabled": false,
+    "python.linting.pylintEnabled": false,
+    "python.linting.enabled": true
+}
