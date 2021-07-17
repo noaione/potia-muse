@@ -77,8 +77,11 @@ class WelcomerCard(PuppeteerCardBase, NamedTuple):
     avatar: str
 
     def serialize(self):
-        real_data = {"u": self.username, "ud": self.discriminator, "avaB64": self.avatar}
-        return real_data
+        return {
+            "u": self.username,
+            "ud": self.discriminator,
+            "avaB64": self.avatar,
+        }
 
 
 WelcomeGenerator = PuppeeterGeneratorBase(

@@ -17,6 +17,10 @@ class GenerateFailure(Exception):
 
 class PuppeteerCardBase(NamedTuple):
     def serialize(self):
+        """
+        Serialize all the data included in the NamedTuple attribute
+        into a dict.
+        """
         raise NotImplementedError
 
 
