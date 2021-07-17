@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from enum import Enum
-from typing import NamedTuple
+from typing import Optional
 
 import discord
 
@@ -28,26 +28,61 @@ class PotiaModLogAction(Enum):
     EVASION_TIMEOUT = 41
 
 
-class PotiaModLog(NamedTuple):
-    action: PotiaModLogAction
-    message: str = ""
-    embed: discord.Embed = None
-    timestamp: int = None
+class PotiaModLog:
+    def __init__(
+        self, action: PotiaModLogAction, message: str = "", embed: discord.Embed = None, timestamp: int = None
+    ) -> None:
+        self._action = action
+        self._message = message
+        self._embed = embed
+        self._timestamp = timestamp
+
+    @property
+    def action(self) -> PotiaModLogAction:
+        return self._action
+
+    @property
+    def timestamp(self) -> Optional[int]:
+        return getattr(self, "timestamp", None)
+
+    @property
+    def message(self) -> str:
+        return getattr(self, "message", "")
+
+    @property
+    def embed(self) -> Optional[discord.Embed]:
+        return getattr(self, "embed", None)
+
+    @action.setter
+    def action(self, action: PotiaModLogAction):
+        self.set_action(action)
+
+    @message.setter
+    def message(self, message: str):
+        self.set_message(message)
+
+    @timestamp.setter
+    def timestamp(self, timestamp: int = None):
+        self.set_timestamp(timestamp)
+
+    @embed.setter
+    def embed(self, embed: discord.Embed):
+        self.set_embed(embed)
 
     def set_timestamp(self, timestamp: int = None):
         if isinstance(timestamp, int):
-            self.timestamp = timestamp
+            setattr(self, "timestamp", timestamp)
         else:
-            self.timestamp = datetime.now(tz=timezone.utc).timestamp()
+            setattr(self, "timestamp", datetime.now(timezone.utc).timestamp())
 
     def set_embed(self, embed: discord.Embed):
         if isinstance(embed, discord.Embed):
-            self.embed = embed
+            setattr(self, "embed", embed)
 
     def set_message(self, message: str):
         if isinstance(message, str) and len(message.strip()) > 0:
-            self.message = message
+            setattr(self, "message", message)
 
     def set_action(self, action: PotiaModLogAction):
         if isinstance(action, PotiaModLogAction):
-            self.action = action
+            setattr(self, "action", action)
