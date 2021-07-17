@@ -38,7 +38,7 @@ class UserWelcomer(commands.Cog):
         except Exception:
             pass
 
-        welcome_msg = f"Halo {member.mention}! Selamat datang di peladen Resmi Muse Indonesia!\n"
+        welcome_msg = f"Halo {member.mention}! Selamat datang di Peladen Resmi Muse Indonesia!\n"
         welcome_msg += f"Kamu adalah anggota **ke-{real_members + 1}**. "
         welcome_msg += "Jangan lupa baca <#864018800743940108> untuk mengakses "
         welcome_msg += "kanal lainnya, ya! Terima kasih!"
