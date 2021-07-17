@@ -13,12 +13,27 @@ from discord.ext import commands
 from phelper.bot import PotiaBot
 from phelper.puppeeter import PuppeeterGenerator
 from phelper.redis import RedisBridge
-from phelper.utils import HelpGenerator, __version__, prefixes_with_data, read_files
+from phelper.utils import (
+    HelpGenerator,
+    __version__,
+    explode_filepath_into_pieces,
+    prefixes_with_data,
+    read_files,
+)
 from phelper.welcomer import WelcomeGenerator
 
 logging.getLogger("websockets").setLevel(logging.WARNING)
 
-cogs_list = ["cogs." + x.replace(".py", "") for x in os.listdir("cogs") if x.endswith(".py")]
+ALL_COGS_LIST = []
+for (dirpath, dirnames, filenames) in os.walk(os.path.join(os.path.dirname(__file__), "cogs")):
+    for filename in filenames:
+        if filename.endswith(".py"):
+            dirpath = dirpath.replace("\\", "/")
+            if dirpath.startswith("./"):
+                dirpath = dirpath[2:]
+            expanded_path = ".".join(explode_filepath_into_pieces(dirpath))
+            just_the_name = filename.replace(".py", "")
+            ALL_COGS_LIST.append(f"{expanded_path}.{just_the_name}")
 
 logger = logging.getLogger()
 logging.basicConfig(
@@ -129,7 +144,7 @@ async def on_ready():
     current_time = datetime.now(tz=wib_tz).strftime("%d/%m %H:%M WIB")
     await bot.modify_activity(current_time)
     bot.logger.info("> Loading all avaialble cogs...")
-    for load_this in cogs_list:
+    for load_this in ALL_COGS_LIST:
         try:
             bot.logger.info(f"Loading module/cog: {load_this}")
             bot.load_extension(load_this)
@@ -211,7 +226,7 @@ async def reload(ctx, *, cogs=None):
         )
         helpcmd.embed.add_field(
             name="Module/Cogs List",
-            value="\n".join(["- " + cl for cl in cogs_list]),
+            value="\n".join(["- " + cl for cl in ALL_COGS_LIST]),
             inline=False,
         )
         return await ctx.send(embed=helpcmd.get())
@@ -263,7 +278,7 @@ async def load(ctx, *, cogs=None):
         )
         helpcmd.embed.add_field(
             name="Module/Cogs List",
-            value="\n".join(["- " + cl for cl in cogs_list]),
+            value="\n".join(["- " + cl for cl in ALL_COGS_LIST]),
             inline=False,
         )
         return await ctx.send(embed=helpcmd.get())
@@ -304,7 +319,7 @@ async def unload(ctx, *, cogs=None):
         )
         helpcmd.embed.add_field(
             name="Module/Cogs List",
-            value="\n".join(["- " + cl for cl in cogs_list]),
+            value="\n".join(["- " + cl for cl in ALL_COGS_LIST]),
             inline=False,
         )
         return await ctx.send(embed=helpcmd.get())
