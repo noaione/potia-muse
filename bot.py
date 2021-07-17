@@ -141,8 +141,7 @@ if bot is None:
 async def on_ready():
     bot.logger.info("---------------------------------------------------------------")
     bot.logger.info("Bot has now established connection with Discord!")
-    current_time = datetime.now(tz=wib_tz).strftime("%d/%m %H:%M WIB")
-    await bot.modify_activity(current_time)
+    await bot.modify_activity("🥐 | @author N4O")
     bot.logger.info("> Loading all avaialble cogs...")
     for load_this in ALL_COGS_LIST:
         try:
@@ -153,6 +152,14 @@ async def on_ready():
             bot.logger.error(f"Failed to load {load_this} module/cogs.")
             bot.echo_error(enoff)
     bot.logger.info("> All availabel cogs/modules are now loaded!")
+    bot.logger.info("---------------------------------------------------------------")
+    bot.logger.info("Binding modlog...")
+    modlog_channel = bot.get_channel(bot.bot_config["modlog_channel"])
+    if isinstance(modlog_channel, discord.TextChannel):
+        bot.set_modlog(modlog_channel)
+        bot.logger.info(f"Modlog binded to: #{modlog_channel.name} ({modlog_channel.id})")
+    else:
+        bot.logger.error("Failed to bind modlog, cannot find the target channel")
     bot.logger.info("---------------------------------------------------------------")
     bot.logger.info("Bot Ready!")
     bot.logger.info("Using Python {}".format(sys.version))
