@@ -14,7 +14,7 @@ class MessageCleanup(commands.Cog):
     """
 
     def __init__(self, bot: PotiaBot) -> None:
-        self.logger = logging.getLogger("modtools.cleanup.MessageCleanup")
+        self.logger = logging.getLogger("ModTools.MessageCleanup")
         self.bot = bot
 
     @commands.command()

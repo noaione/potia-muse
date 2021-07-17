@@ -10,7 +10,7 @@ from phelper.timeparse import TimeConverter, TimeString
 class ChannelControl(commands.Cog):
     def __init__(self, bot: PotiaBot):
         self.bot = bot
-        self.logger = logging.getLogger("cogs.ChannelControl")
+        self.logger = logging.getLogger("ModTools.ChannelControl")
 
     @commands.command()
     @commands.guild_only()
