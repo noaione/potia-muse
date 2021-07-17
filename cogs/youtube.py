@@ -88,10 +88,7 @@ class YouTubeVideo(commands.Cog):
             if "freechat" in lower_title or "free chat" in lower_title:
                 continue
             msg_design = ""
-            strf = datetime.fromtimestamp(start_time + (7 * 60 * 60), tz=timezone.utc).strftime(
-                "%m/%d %H:%M WIB"
-            )
-            msg_design += f"`{strf}` "
+            msg_design += f"<t:{start_time}> "
             msg_design += f"- [{yt['title']}]"
             # https://youtu.be/nvTQ4TEPnsk
             msg_design += f"(https://youtu.be/{yt['id']})"
@@ -105,6 +102,7 @@ class YouTubeVideo(commands.Cog):
             return reparsed_collected_yt
 
         reparsed_collected_yt = [m["t"] for m in collected_yt]
+        reparsed_collected_yt.insert(0, "Waktu yang tertera merupakan waktu lokal anda!\n")
         return reparsed_collected_yt
 
     @staticmethod
