@@ -110,6 +110,19 @@ async def write_files(data: T.Any, fpath: str):
         await fpw.write(data)
 
 
+def explode_filepath_into_pieces(filepath: str) -> T.List[str]:
+    """Split a filepath into pieces
+    ---
+    :param filepath: file path
+    :type filepath: str
+    :return: file path pieces
+    :rtype: list
+    """
+    filepath = filepath.replace("\\", "/")
+    filepath = filepath.split("/")
+    return filepath
+
+
 def prefixes_with_data(
     bot,
     context: T.Union[discord.Message, discord.TextChannel, discord.Guild, commands.Context],
