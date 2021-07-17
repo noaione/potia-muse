@@ -17,6 +17,7 @@ class BotMetaCommands(commands.Cog):
         inf += "Bot ini akan membantu posting episode terbaru ke <#864018911884607508> "
         inf += "dan informasi dari YouTube ke <#864043313166155797>."
         inf += "\nGambar profil: <https://youtu.be/AsWZR2ZTMBM?t=282>"
+        inf += "\n\n*[Source Code](https://github.com/noaione/potia-muse)*"
         embed.add_field(name="Info singkat", value=inf, inline=False)
         embed.add_field(name="Versi", value=f"v{self.bot.semver}", inline=False)
         avatar: discord.ClientUser = self.bot.user
