@@ -43,46 +43,34 @@ class PotiaModLog:
 
     @property
     def timestamp(self) -> Optional[int]:
-        return getattr(self, "timestamp", None)
+        return getattr(self, "_timestamp", None)
 
     @property
     def message(self) -> str:
-        return getattr(self, "message", "")
+        return getattr(self, "_message", "")
 
     @property
     def embed(self) -> Optional[discord.Embed]:
-        return getattr(self, "embed", None)
+        return getattr(self, "_embed", None)
 
     @action.setter
     def action(self, action: PotiaModLogAction):
-        self.set_action(action)
+        if isinstance(action, PotiaModLogAction):
+            self._action = action
 
     @message.setter
     def message(self, message: str):
-        self.set_message(message)
+        if isinstance(message, str) and len(message.strip()) > 0:
+            self._message = message
 
     @timestamp.setter
     def timestamp(self, timestamp: int = None):
-        self.set_timestamp(timestamp)
+        if isinstance(timestamp, int):
+            self._timestamp = timestamp
+        else:
+            self._timestamp = datetime.now(timezone.utc).timestamp()
 
     @embed.setter
     def embed(self, embed: discord.Embed):
-        self.set_embed(embed)
-
-    def set_timestamp(self, timestamp: int = None):
-        if isinstance(timestamp, int):
-            setattr(self, "timestamp", timestamp)
-        else:
-            setattr(self, "timestamp", datetime.now(timezone.utc).timestamp())
-
-    def set_embed(self, embed: discord.Embed):
         if isinstance(embed, discord.Embed):
-            setattr(self, "embed", embed)
-
-    def set_message(self, message: str):
-        if isinstance(message, str) and len(message.strip()) > 0:
-            setattr(self, "message", message)
-
-    def set_action(self, action: PotiaModLogAction):
-        if isinstance(action, PotiaModLogAction):
-            setattr(self, "action", action)
+            self._embed = embed
