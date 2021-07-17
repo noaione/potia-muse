@@ -1,11 +1,12 @@
+import argparse
 import asyncio
-from datetime import datetime, timedelta, timezone
 import functools
 import logging
 import os
 import pathlib
 import sys
 import time
+from datetime import timedelta, timezone
 
 import discord
 from discord.ext import commands
@@ -60,6 +61,11 @@ if discord_ver_tuple >= (1, 5, 0):
     logger.info("Detected discord.py version 1.5.0, using the new Intents system...")
     # Enable all except Presences.
     DISCORD_INTENTS = discord.Intents.all()
+
+
+parser = argparse.ArgumentParser(description="PotiaBot")
+parser.add_argument("-dcog", "--disable-cogs", default=[], action="append", dest="cogs_skip")
+args_parsed = parser.parse_args()
 
 
 async def initialize_bot(loop: asyncio.AbstractEventLoop):
@@ -143,7 +149,15 @@ async def on_ready():
     bot.logger.info("Bot has now established connection with Discord!")
     await bot.modify_activity("🥐 | @author N4O")
     bot.logger.info("> Loading all avaialble cogs...")
+    skipped_cogs = []
+    for cogs in args_parsed.cogs_skip:
+        if not cogs.startswith("cogs."):
+            cogs = "cogs." + cogs
+        skipped_cogs.append(cogs)
     for load_this in ALL_COGS_LIST:
+        if load_this in skipped_cogs:
+            bot.logger.warning(f"> Skipping {load_this}...")
+            continue
         try:
             bot.logger.info(f"Loading module/cog: {load_this}")
             bot.load_extension(load_this)
