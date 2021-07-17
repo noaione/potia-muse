@@ -32,7 +32,6 @@ class YouTubeVideo(commands.Cog):
             r"(.*)http(?:s|)\:\/\/(?:www.|)youtube\.com\/watch\?(?P<params>.*)", re.IGNORECASE
         )
 
-        self._any_live = False
         self._last_data = 0
 
         self._upcoming_watcher.start()
