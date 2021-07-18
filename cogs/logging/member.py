@@ -219,7 +219,7 @@ class LoggingMember(commands.Cog):
         if role_updated:
             self.logger.info("Role updated, reporting to modlog...")
             generate_log = self._generate_log(
-                PotiaModLogAction.MEMBER_UPDATE, {"user_data": after, "details": nick_detail}
+                PotiaModLogAction.MEMBER_UPDATE, {"user_data": after, "details": role_detail}
             )
             await self.bot.send_modlog(generate_log)
 
