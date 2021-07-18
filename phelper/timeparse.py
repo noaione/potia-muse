@@ -124,6 +124,11 @@ class TimeString:
         except sc.SchemaError as se:
             raise TimeStringValidationError(se.code)
 
+    def __str__(self):
+        if len(self._data) < 1:
+            return None
+        return f"{self.timestamp()}s"
+
     def __repr__(self):
         text_contents = []
         for data in self._data:
