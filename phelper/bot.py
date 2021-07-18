@@ -56,7 +56,7 @@ class PotiaBot(commands.Bot):
     def should_modlog(
         self,
         context: ContextModlog,
-        user_data: Union[discord.Member, discord.User],
+        user_data: Union[discord.Member, discord.User] = None,
         include_bot: bool = False,
     ):
         """Check if the listener can continue and log to modlog.
@@ -75,7 +75,7 @@ class PotiaBot(commands.Bot):
 
         if guild_info is not None and guild_info.id != server_data.id:
             return False
-        if user_data.bot and not include_bot:
+        if user_data is not None and user_data.bot and not include_bot:
             return False
         return True
 
