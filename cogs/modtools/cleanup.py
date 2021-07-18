@@ -3,7 +3,6 @@ import logging
 import discord
 from discord.channel import TextChannel
 from discord.ext import commands
-
 from phelper.bot import PotiaBot
 from phelper.utils import send_timed_msg
 

@@ -1,11 +1,10 @@
 import logging
-from phelper.modlog import PotiaModLog, PotiaModLogAction
 from typing import List, Union
 
 import discord
 from discord.ext import commands
-
 from phelper.bot import PotiaBot
+from phelper.modlog import PotiaModLog, PotiaModLogAction
 
 
 class LoggingMessage(commands.Cog):

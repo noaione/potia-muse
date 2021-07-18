@@ -4,7 +4,6 @@ from typing import Dict, List
 from discord.ext import commands, tasks
 from phelper.bot import PotiaBot
 
-
 DEFAULT_RULES = """✦ Dilarang TOKSIK dan/atau MEMBULLY!
     Toksik yang dimaksud:
        - Capslock tidak pada tempatnya.

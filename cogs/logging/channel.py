@@ -1,10 +1,9 @@
 import logging
-from phelper.modlog import PotiaModLog, PotiaModLogAction
 
 import discord
 from discord.ext import commands
-
 from phelper.bot import PotiaBot
+from phelper.modlog import PotiaModLog, PotiaModLogAction
 
 
 class LoggingChannel(commands.Cog):
