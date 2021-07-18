@@ -1,8 +1,9 @@
-from datetime import datetime, timezone
 import logging
 import traceback
-from typing import Dict, Union
+from datetime import datetime, timezone
+from typing import AnyStr, Dict, Union
 
+import aiohttp
 import discord
 from discord.ext import commands
 
@@ -66,6 +67,8 @@ class PotiaBot(commands.Bot):
         :param include_bot: Should we include bot stuff or not, defaults to False
         :type include_bot: bool, optional
         """
+        if context is None:
+            return False
         server_data = context
         if not isinstance(context, discord.Guild):
             server_data = context.guild
@@ -98,3 +101,29 @@ class PotiaBot(commands.Bot):
             real_message = None
         self.logger.info(f"Content: {real_message}, embed: {modlog.embed}")
         await self._modlog_channel.send(content=real_message, embed=modlog.embed)
+
+    async def upload_ihateanime(self, content: AnyStr, filename: str = None):
+        timestamp = int(round(self.now().timestamp()))
+        if filename is None:
+            filename = f"PotiaBot.{timestamp}.txt"
+        else:
+            if not filename.endswith(".txt"):
+                filename += ".txt"
+        if not isinstance(content, bytes):
+            content = content.encode("utf-8")
+        async with aiohttp.ClientSession() as session:
+            form_data = aiohttp.FormData()
+            form_data.add_field(
+                name="file",
+                value=content,
+                content_type="text/plain",
+                filename=filename,
+            )
+            try:
+                async with session.post("https://p.ihateani.me/upload", data=form_data) as resp:
+                    if resp.status == 200:
+                        res = await resp.text()
+                        return res
+            except aiohttp.ClientError:
+                return None
+        return None
