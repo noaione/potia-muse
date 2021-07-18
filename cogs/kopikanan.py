@@ -1,6 +1,5 @@
 import logging
 from datetime import datetime, timezone
-import aiohttp
 
 import discord
 from discord.ext import commands, tasks
@@ -34,21 +33,11 @@ class KopiKanan(commands.Cog):
     def current_timestamp():
         return datetime.now(tz=timezone.utc).timestamp()
 
-    @staticmethod
-    async def _send_ihateanime(to_be_sent: str):
-        async with aiohttp.ClientSession() as session:
-            current = str(datetime.now(tz=timezone.utc).timestamp())
-            form_data = aiohttp.FormData()
-            form_data.add_field(
-                name="file",
-                value=to_be_sent.encode("utf-8"),
-                content_type="text/plain",
-                filename=f"LaporanKopiKananMuseID_{current}.txt",
-            )
-            async with session.post("https://p.ihateani.me/upload", data=form_data) as resp:
-                if resp.status == 200:
-                    res = await resp.text()
-                    return res
+    async def _send_ihateanime(self, to_be_sent: str):
+        current = str(datetime.now(tz=timezone.utc).timestamp())
+        filename = f"LaporanKopiKananMuseID_{current}.txt"
+
+        return self.bot.upload_ihateanime(to_be_sent, filename)
 
     @tasks.loop(seconds=1, count=1)
     async def _prepare_kopikanan_handler(self):
