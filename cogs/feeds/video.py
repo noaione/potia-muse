@@ -11,11 +11,11 @@ from discord.ext import commands, tasks
 from phelper.bot import PotiaBot
 
 
-class YouTubeVideo(commands.Cog):
+class FeedsYoutubeVideo(commands.Cog):
     def __init__(self, bot: PotiaBot) -> None:
         self.bot = bot
 
-        self.logger = logging.getLogger("cogs.YouTubeVideo")
+        self.logger = logging.getLogger("Feeds.YouTubeVideo")
         self._channels: discord.TextChannel = self.bot.get_channel(864018911884607508)
         self._upcoming_message = 864062464509476874
 
@@ -263,4 +263,4 @@ class YouTubeVideo(commands.Cog):
 
 
 def setup(bot: PotiaBot):
-    bot.add_cog(YouTubeVideo(bot))
+    bot.add_cog(FeedsYoutubeVideo(bot))
