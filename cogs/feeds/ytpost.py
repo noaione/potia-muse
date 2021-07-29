@@ -19,6 +19,13 @@ class FeedsYoutubePosts(commands.Cog):
     def __init__(self, bot: PotiaBot) -> None:
         self.bot = bot
 
+        self._museid_info = {
+            "id": "UCxxnxya_32jcKj4yN1_kD7A",
+            "name": "Muse Indonesia",
+            "url": "https://www.youtube.com/channel/UCxxnxya_32jcKj4yN1_kD7A",
+            "icon": "https://yt3.ggpht.com/a/AATXAJzBc6k_Wf5QCu4i0lpX7MksvS_f2R7vNTQ4Wub8=s900-c-k-c0xffffffff-no-rj-mo",  # noqa: E501
+        }
+
         self.logger = logging.getLogger("Feeds.YouTubePosts")
         self._news_channels: discord.TextChannel = self.bot.get_channel(864043313166155797)
         self._youtube_posts.start()
@@ -51,7 +58,7 @@ class FeedsYoutubePosts(commands.Cog):
         post_id = post_data["id"]
         embed = discord.Embed(color=0xFF0000, url=f"https://www.youtube.com/post/{post_id}")
         embed.set_author(
-            name="Muse Indonesia", url=self.streamer_data["url"], icon_url=self.streamer_data["icon"]
+            name="Muse Indonesia", url=self._museid_info["url"], icon_url=self._museid_info["icon"]
         )
         if post_data["content"]:
             embed.description = trim_text(post_data["content"], 1995)
@@ -108,3 +115,7 @@ class FeedsYoutubePosts(commands.Cog):
         except Exception as e:
             self.logger.error("Failed to run `_youtube_posts`, traceback and stuff:")
             self.bot.echo_error(e)
+
+
+def setup(bot: PotiaBot):
+    bot.add_cog(FeedsYoutubePosts(bot))
