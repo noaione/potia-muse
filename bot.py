@@ -8,6 +8,7 @@ import sys
 import time
 from datetime import timedelta, timezone
 
+import coloredlogs
 import discord
 from discord.ext import commands
 
@@ -36,6 +37,7 @@ for (dirpath, dirnames, filenames) in os.walk(os.path.join(os.path.dirname(__fil
             just_the_name = filename.replace(".py", "")
             ALL_COGS_LIST.append(f"{expanded_path}.{just_the_name}")
 
+
 logger = logging.getLogger()
 logging.basicConfig(
     level=logging.DEBUG,
@@ -44,11 +46,19 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 
-console = logging.StreamHandler(sys.stdout)
-console.setLevel(logging.INFO)
-console_formatter = logging.Formatter("[%(levelname)s] (%(name)s): %(funcName)s: %(message)s")
-console.setFormatter(console_formatter)
-logger.addHandler(console)
+coloredlogs.install(
+    fmt="[%(asctime)s %(hostname)s][%(levelname)s] (%(name)s[%(process)d]): %(funcName)s: %(message)s",
+    level=logging.INFO,
+    logger=logger,
+    stream=sys.stdout,
+)
+logging.getLogger("discord").setLevel(logging.WARNING)
+logging.getLogger("websockets").setLevel(logging.WARNING)
+logging.getLogger("chardet").setLevel(logging.WARNING)
+logging.getLogger("async_rediscache").setLevel(logging.WARNING)
+
+# Set back to the default of INFO even if asyncio's debug mode is enabled.
+logging.getLogger("asyncio").setLevel(logging.INFO)
 
 # Check if Python3.7+
 # Refer: https://docs.python.org/3/whatsnew/3.7.html#asyncio
