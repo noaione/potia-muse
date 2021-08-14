@@ -106,6 +106,7 @@ class FeedsYoutubePosts(commands.Cog):
                     old_posts_data.append(post["id"])
                 except (discord.Forbidden, discord.HTTPException):
                     self.logger.warning(f"Failed to send this post: {post['id']}")
+                    continue
                 try:
                     await messages.publish()
                 except (discord.Forbidden, discord.HTTPException):
