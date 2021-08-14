@@ -82,6 +82,9 @@ class LoggingMessage(commands.Cog):
         if not should_log:
             return
 
+        if after.is_system():
+            return
+
         if before.content == after.content:
             return
 
@@ -120,6 +123,9 @@ class LoggingMessage(commands.Cog):
     async def _log_message_delete(self, message: discord.Message):
         should_log = self.bot.should_modlog(message.guild, message.author)
         if not should_log:
+            return
+
+        if message.is_system():
             return
 
         guild: discord.Guild = message.guild
@@ -179,14 +185,18 @@ class LoggingMessage(commands.Cog):
 
     @commands.Cog.listener("on_bulk_message_delete")
     async def _log_bulk_message_delete(self, messages: List[discord.Message]):
+        valid_messages: List[discord.Message] = []
         for message in messages:
             should_log = self.bot.should_modlog(message.guild, message.author)
             if not should_log:
                 return
+            if message.is_system():
+                continue
+            valid_messages.append(message)
 
         executor = {}
         async for audit in self._guild.audit_logs(action=discord.AuditLogAction.message_bulk_delete):
-            if audit.extra is not None and len(audit.extra.count) == len(messages):
+            if audit.extra is not None and len(audit.extra.count) == len(valid_messages):
                 executor = {
                     "id": audit.user.id,
                     "name": str(audit.user),
@@ -194,8 +204,8 @@ class LoggingMessage(commands.Cog):
                 break
 
         full_upload_text = []
-        channel = messages[0].channel
-        for n, message in enumerate(messages, 1):
+        channel = valid_messages[0].channel
+        for n, message in enumerate(valid_messages, 1):
             current = []
             timestamp = message.created_at.strftime("%Y-%m-%d %H:%M:%S") + " UTC"
             current.append(f"-- Pesan #{n} :: {str(message.author)} ({message.author.id}) [{timestamp}]")
@@ -217,7 +227,7 @@ class LoggingMessage(commands.Cog):
 
         real_content, _ = await self._upload_or_not("\n\n".join(full_upload_text), True)
         full_details = {
-            "count": len(messages),
+            "count": len(valid_messages),
             "url": real_content,
             "channel": {
                 "id": channel.id,
