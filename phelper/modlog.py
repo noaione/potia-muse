@@ -26,6 +26,9 @@ class PotiaModLogAction(Enum):
     MESSAGE_DELETE_BULK = 32
     EVASION_BAN = 40
     EVASION_TIMEOUT = 41
+    THREAD_CREATE = 50
+    THREAD_REMOVE = 51
+    THREAD_UPDATE = 52
 
 
 class PotiaModLog:
