@@ -30,22 +30,12 @@ SOFTWARE.
 """
 
 from datetime import datetime, timedelta
-from typing import Dict, List, Union
+from typing import Dict, List, NamedTuple, Union
 
-import schema as sc
-from discord.ext import commands
+__all__ = ["TimeString", "TimeStringError", "TimeStringParseError", "TimeStringValidationError"]
 
-TimeSets = List[Dict[str, Union[str, int]]]
 
-TimeStringSchema = sc.Schema(
-    [
-        {
-            "t": sc.Or(int, float),
-            "s": sc.And(str, sc.Use(str.lower), lambda s: s in ("ms", "s", "m", "h", "w", "d", "mo", "y")),
-        }
-    ]
-)
-
+_SUFFIXES = ["ms", "s", "m", "h", "w", "d", "mo", "y"]
 _NAME_MAPS = {
     "ms": "Milisecond",
     "s": "Detik",
@@ -56,6 +46,14 @@ _NAME_MAPS = {
     "mo": "Bulan",
     "y": "Tahun",
 }
+
+
+class TimeTuple(NamedTuple):
+    t: Union[int, float]
+    s: str
+
+
+TimeSets = List[TimeTuple]
 
 
 class TimeStringError(Exception):
@@ -112,22 +110,20 @@ def normalize_suffix(suffix: str) -> Union[str, None]:
 
 class TimeString:
     def __init__(self, timesets: TimeSets) -> None:
-        self._data = timesets
+        self._data: TimeSets = timesets
         self.__validate()
 
     def __validate(self):
         if not isinstance(self._data, list):
             raise TimeStringValidationError()
         self._data = self.__concat_dupes(self._data)
-        try:
-            TimeStringSchema.validate(self._data)
-        except sc.SchemaError as se:
-            raise TimeStringValidationError(se.code)
-
-    def __str__(self):
-        if len(self._data) < 1:
-            return None
-        return f"{self.timestamp()}s"
+        for data in self._data:
+            if not isinstance(data.t, (int, float)):
+                raise TimeStringValidationError(f"{data.t} bukanlah angka!")
+            if not isinstance(data.s, str):
+                raise TimeStringValidationError(f"{data.s} bukanlah string!")
+            if data.s not in _SUFFIXES:
+                raise TimeStringValidationError(f"{data.s} bukanlah suffix yang diperlukan!")
 
     def __repr__(self):
         text_contents = []
@@ -138,7 +134,7 @@ class TimeString:
         return "<TimeString NoData>"
 
     @staticmethod
-    def __tokenize(text: str) -> TimeSets:
+    def __tokenize(text: str) -> List[TimeTuple]:
         time_sets = []
         texts: List[str] = list(text)  # Convert to list of string
         current_num = ""
@@ -149,8 +145,7 @@ class TimeString:
                 if build_suffix.rstrip() and current_num.rstrip():
                     suf = normalize_suffix(build_suffix)
                     if suf is not None:
-                        nt = {"t": int(current_num, 10), "s": suf}
-                        time_sets.append(nt)
+                        time_sets.append(TimeTuple(int(current_num, 10), suf))
                         current_num = ""
                         build_suffix = ""
                 continue
@@ -158,8 +153,7 @@ class TimeString:
                 if current == "s" and build_suffix.rstrip() and current_num.rstrip():
                     suf = normalize_suffix(build_suffix)
                     if suf is not None:
-                        nt = {"t": int(current_num, 10), "s": suf}
-                        time_sets.append(nt)
+                        time_sets.append(TimeTuple(int(current_num, 10), suf))
                         current_num = ""
                         build_suffix = ""
                 current = "t"
@@ -172,25 +166,24 @@ class TimeString:
         if current_num.rstrip():
             suf = normalize_suffix(build_suffix)
             if suf is not None:
-                nt = {"t": int(current_num, 10), "s": suf}
-                time_sets.append(nt)
+                time_sets.append(TimeTuple(int(current_num, 10), suf))
         return time_sets
 
     @staticmethod
     def __concat_dupes(time_sets: TimeSets):
-        occured = {}
+        occured: Dict[str, Union[int, float]] = {}
         for time in time_sets:
-            if time["s"] not in occured:
-                occured[time["s"]] = time["t"]
+            if time.s not in occured:
+                occured[time.s] = time.t
             else:
-                occured[time["s"]] += time["t"]
+                occured[time.s] += time.t
         concatted = []
         for suf, am in occured.items():
-            concatted.append({"t": am, "s": suf})
+            concatted.append(TimeTuple(am, suf))
         return concatted
 
     @staticmethod
-    def __multiplier(t, s):
+    def __multiplier(t: Union[int, float], s: str):
         if s == "s":
             return t
         if s == "ms":
@@ -218,33 +211,14 @@ class TimeString:
     def timestamp(self) -> int:
         real_seconds = 0
         for data in self._data:
-            real_seconds += self.__multiplier(data["t"], data["s"])
+            real_seconds += self.__multiplier(data.t, data.s)
         return real_seconds
 
     def to_datetime(self) -> datetime:
         dt_start = datetime.utcfromtimestamp(0)
-        delta = timedelta(seconds=self.timestamp())
-        combined = dt_start + delta
+        combined = dt_start + self.to_delta()
         return combined
 
-
-class TimeConverter(commands.Converter):
-    """
-    A converter Class that will convert a string-formatted text of time into a proper time data
-    that can be used.
-
-    This will convert the string into `:class:`TimeString
-
-    Example Usage:
-    ```py
-        async def to_seconds(self, ctx, timething: TimeConverter):
-            print(timething.timestamp())
-    ```
-    """
-
-    async def convert(self, ctx, argument: str):
-        try:
-            converted = TimeString.parse(argument)
-            return converted
-        except TimeStringParseError:
-            return None
+    def to_delta(self) -> timedelta:
+        delta = timedelta(seconds=self.timestamp())
+        return delta
