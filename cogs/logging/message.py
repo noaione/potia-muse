@@ -125,8 +125,8 @@ class LoggingMessage(commands.Cog):
         guild: discord.Guild = message.guild
         initiator: Union[discord.Member, discord.User] = None
         async for guild_log in guild.audit_logs(action=discord.AuditLogAction.message_delete):
-            if guild_log.target.id == message.author.id:
-                initiator = guild_log.user
+            if guild_log.user.id == message.author.id:
+                initiator = guild_log.target
                 break
 
         if initiator is not None and initiator.bot:
