@@ -62,19 +62,21 @@ class EventManager:
 
     async def _internal_loop(self):
         self.logger.info("Starting internal event manager task...")
-        try:
-            callback, kwargs = await self._waiters.get()
-            self.logger.info("New event received, calling callback...")
+        while True:
             try:
-                # Wait for 20s before cancelling
-                await asyncio.wait_for(maybe_asyncute(callback, **kwargs), timeout=20.0, loop=self._loop)
-            except asyncio.TimeoutError:
-                self.logger.warning("Callback timed out occured, will not continue!")
-            except Exception:
-                pass
-            self._waiters.task_done()
-        except asyncio.CancelledError:
-            pass
+                callback, kwargs = await self._waiters.get()
+                self.logger.info("New event received, calling callback...")
+                try:
+                    # Wait for 20s before cancelling
+                    await asyncio.wait_for(maybe_asyncute(callback, **kwargs), timeout=20.0, loop=self._loop)
+                except asyncio.TimeoutError:
+                    self.logger.warning("Callback timed out occured, will not continue!")
+                except Exception as e:
+                    self.logger.error("An exception occured while trying to execute callback:")
+                    self.logger.exception(e)
+                self._waiters.task_done()
+            except asyncio.CancelledError:
+                break
 
     async def close(self):
         self._blocking = True
