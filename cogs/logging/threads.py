@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 
 import discord
 from discord.ext import commands
@@ -11,9 +12,31 @@ class LoggingThreads(commands.Cog):
         self.bot: PotiaBot = bot
         self.logger = logging.getLogger("log.LoggingThreads")
 
+    @staticmethod
+    def strftime(dt_time: datetime) -> str:
+        month_en = dt_time.strftime("%B")
+        tl_map = {
+            "January": "Januari",
+            "February": "Februari",
+            "March": "Maret",
+            "April": "April",
+            "May": "Mei",
+            "June": "Juni",
+            "July": "Juli",
+            "August": "Agustus",
+            "September": "September",
+            "October": "Oktober",
+            "November": "November",
+            "December": "Desember",
+        }
+        month_id = tl_map.get(month_en, month_en)
+        final_data = dt_time.strftime("%d ") + month_id
+        final_data += dt_time.strftime(" %Y, %H:%M:%S UTC")
+        return final_data
+
     def _generate_log(self, action: PotiaModLogAction, data: dict) -> PotiaModLog:
         current_time = self.bot.now()
-        potia_log = PotiaModLog(action=action, timestamp=current_time)
+        potia_log = PotiaModLog(action=action, timestamp=current_time.timestamp())
         guild_info = data.get("guild", None)
 
         if action == PotiaModLogAction.THREAD_CREATE:
