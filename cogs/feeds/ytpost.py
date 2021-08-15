@@ -1,7 +1,6 @@
 import logging
 from typing import List
 
-import aiohttp
 import discord
 from discord.ext import commands, tasks
 from phelper.bot import PotiaBot
@@ -35,7 +34,7 @@ class FeedsYoutubePosts(commands.Cog):
 
     async def collect_muse_yt_posts(self):
         self.logger.info("Fetching community pages...")
-        async with aiohttp.ClientSession() as sesi:
+        async with self.bot.aiosession.ClientSession() as sesi:
             async with sesi.get("https://naotimes-og.glitch.me/ytposts/UCxxnxya_32jcKj4yN1_kD7A") as resp:
                 if resp.status != 200:
                     self.logger.error("Got non 200 status code, returning anyway")

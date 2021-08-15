@@ -4,7 +4,6 @@ import re
 from datetime import datetime, timedelta, timezone
 from typing import List
 
-import aiohttp
 import discord
 from discord.errors import HTTPException
 from discord.ext import commands, tasks
@@ -44,14 +43,13 @@ class FeedsYoutubeVideo(commands.Cog):
         self._archive_feeds_watcher.start()
 
     async def request_muse(self):
-        async with aiohttp.ClientSession() as sesi:
-            async with sesi.get("https://api.ihateani.me/museid/live") as resp:
-                if "json" not in resp.content_type:
-                    raise ValueError()
-                if resp.status != 200:
-                    raise ValueError()
-                res = await resp.json()
-                return res["live"], res["upcoming"], res["feeds"]
+        async with self.bot.aiosession.get("https://api.ihateani.me/museid/live") as resp:
+            if "json" not in resp.content_type:
+                raise ValueError()
+            if resp.status != 200:
+                raise ValueError()
+            res = await resp.json()
+            return res["live"], res["upcoming"], res["feeds"]
 
     async def request_feeds_data(self, limit=25):
         self.logger.info("Requesting feeds data...")

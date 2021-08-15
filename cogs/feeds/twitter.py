@@ -1,7 +1,6 @@
 import logging
 from typing import List
 
-import aiohttp
 import discord
 from discord.ext import commands, tasks
 from phelper.bot import PotiaBot
@@ -21,15 +20,14 @@ class FeedsTwitterPosts(commands.Cog):
         self._twitter_posts.cancel()
 
     async def _fetch_twitter_posts(self):
-        headers = {"Authorization": f"Bearer {self.bot.bot_config['twitter']}", "User-Agent": "PotiaBot/1.0"}
+        headers = {"Authorization": f"Bearer {self.bot.config.twitter_key}"}
         params = {
             "expansions": "author_id",
             "tweet.fields": "created_at",
         }
-        async with aiohttp.ClientSession(headers=headers) as session:
-            async with session.get(self.ENDPOINT, params=params) as resp:
-                data = await resp.json()
-                return data.get("data")
+        async with self.bot.aiosession.get(self.ENDPOINT, params=params, headers=headers) as resp:
+            data = await resp.json()
+            return data.get("data")
 
     @tasks.loop(minutes=3.0)
     async def _twitter_posts(self):
