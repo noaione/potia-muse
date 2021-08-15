@@ -26,7 +26,7 @@ class UserWelcomer(commands.Cog):
                 continue
             real_members += 1
 
-        avatar_full = await member.avatar_url.read()
+        avatar_full = await member.avatar.read()
         avatar_b64 = _bytes_to_base64_data(avatar_full)
         wilkomen = WelcomerCard(member.name, member.discriminator, avatar_b64)
 
