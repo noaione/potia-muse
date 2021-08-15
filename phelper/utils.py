@@ -6,7 +6,7 @@ import typing as T
 
 import aiofiles
 import discord
-import ujson
+import orjson
 from discord.ext import commands
 
 __version__ = "1.0.0b"
@@ -73,7 +73,7 @@ async def read_files(fpath: str) -> T.Any:
 
     :param fpath: file path
     :type fpath: str
-    :return: file contents, parsed with ujson if it's list or dict
+    :return: file contents, parsed with orjson if it's list or dict
              if file doesn't exist, return None
     :rtype: Any
     """
@@ -82,7 +82,7 @@ async def read_files(fpath: str) -> T.Any:
     async with aiofiles.open(fpath, "r", encoding="utf-8") as fp:
         data = await fp.read()
     try:
-        data = ujson.loads(data)
+        data = orjson.loads(data)
     except ValueError:
         pass
     return data
@@ -98,12 +98,9 @@ async def write_files(data: T.Any, fpath: str):
     :type fpath: str
     """
     if isinstance(data, (dict, list, tuple)):
-        data = ujson.dumps(
+        data = orjson.dumps(
             data,
-            ensure_ascii=False,
-            encode_html_chars=False,
-            escape_forward_slashes=False,
-            indent=4,
+            option=orjson.OPT_INDEN_2,
         )
     elif isinstance(data, int):
         data = str(data)
@@ -112,6 +109,26 @@ async def write_files(data: T.Any, fpath: str):
         wmode = "wb"
     async with aiofiles.open(fpath, wmode, encoding="utf-8") as fpw:
         await fpw.write(data)
+
+
+def blocking_read_files(fpath: str) -> T.Any:
+    """Read a files with blocking
+    ---
+    :param fpath: file path
+    :type fpath: str
+    :return: file contents, parsed with orjson if it's list or dict
+             if file doesn't exist, return None
+    :rtype: Any
+    """
+    if not os.path.isfile(fpath):
+        return None
+    with open(fpath, "r", encoding="utf-8") as fp:
+        data = fp.read()
+    try:
+        data = orjson.loads(data)
+    except ValueError:
+        pass
+    return data
 
 
 def explode_filepath_into_pieces(filepath: str) -> T.List[str]:
@@ -341,7 +358,7 @@ class HelpGenerator:
         embed = discord.Embed(color=self.color)
         embed.set_author(
             name=self.bot.user.display_name,
-            icon_url=self.bot.user.avatar_url,
+            icon_url=self.bot.user.avatar,
         )
         embed.set_footer(text=f"Dibuat oleh N4O#8868 | Versi {self._ver}")
         title = "Bantuan Perintah"
