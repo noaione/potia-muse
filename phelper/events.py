@@ -51,7 +51,7 @@ class EventManager:
 
     def __init__(self, loop: Optional[asyncio.AbstractEventLoop] = None):
         """A simple event manager to dispatch a event to another cogs"""
-        self.logger = logging.getLogger("naoTimes.EventManager")
+        self.logger = logging.getLogger("Potia.EventManager")
         self._event_map: Dict[str, List[EventFunc]] = {}
 
         self._loop = loop or asyncio.get_event_loop()
@@ -61,10 +61,15 @@ class EventManager:
         self._taskers = asyncio.Task(self._internal_loop(), loop=self._loop)
 
     async def _internal_loop(self):
+        self.logger.info("Starting internal event manager task...")
         try:
             callback, kwargs = await self._waiters.get()
+            self.logger.info("New event received, calling callback...")
             try:
-                await maybe_asyncute(callback, **kwargs)
+                # Wait for 20s before cancelling
+                await asyncio.wait_for(maybe_asyncute(callback, **kwargs), timeout=20.0, loop=self._loop)
+            except asyncio.TimeoutError:
+                self.logger.warning("Callback timed out occured, will not continue!")
             except Exception:
                 pass
             self._waiters.task_done()
@@ -96,6 +101,8 @@ class EventManager:
             else:
                 event_map = self._event_map["realfn_" + event]
                 is_realfn = True
+        else:
+            event_map = self._event_map[event]
 
         if is_realfn:
             return event_map[0]
@@ -150,13 +157,16 @@ class EventManager:
 
         if isinstance(callbacks, list):
             for callback in callbacks:
+                self.logger.info(f"Trying to dispatch event: {event}, callback: {callback}")
                 valid, real_kwargs = self.__create_kwarguments(callback, *args, **kwargs)
                 if not valid:
                     continue
                 self._waiters.put_nowait([callback, real_kwargs])
         else:
+            self.logger.info(f"Trying to dispatch event: {event}, callback: {callbacks}")
             valid, real_kwargs = self.__create_kwarguments(callbacks, *args, **kwargs)
             if valid:
+                self.logger.info(f"Dispatching {event} to callback...")
                 self._waiters.put_nowait([callbacks, real_kwargs])
 
     @staticmethod
