@@ -112,6 +112,7 @@ class OwnerPandoraBox(commands.Cog):
         await msg.edit(content=f"Successfully loaded `{cogs}` module.")
 
     @commands.command(name="unload")
+    @commands.is_owner()
     async def _bbmod_unload(self, ctx: commands.Context, *, cogs: str = None):
         if not cogs:
             ALL_COGS = self.bot.available_extensions()
