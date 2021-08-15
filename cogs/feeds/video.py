@@ -162,6 +162,8 @@ class FeedsYoutubeVideo(commands.Cog):
             )
             self.logger.info("Deleting old data first...")
             for deletion in need_to_be_deleted:
+                if "takarir indonesia" in deletion["title"].lower():
+                    self.bot.pevents.dispatch("new live", deletion)
                 try:
                     delete_this: discord.Message = await self._channels.fetch_message(deletion["msg_id"])
                     await delete_this.delete()
@@ -194,7 +196,10 @@ class FeedsYoutubeVideo(commands.Cog):
                 )
                 try:
                     msg_info: discord.Message = await channels.send(content="Sedang Tayang!", embed=embed)
-                    collected_again.append({"id": post_this["id"], "msg_id": msg_info.id})
+                    post_this["msg_id"] = msg_info.id
+                    if "takarir indonesia" in post_this["title"].lower():
+                        self.bot.pevents.dispatch("new live", post_this)
+                    collected_again.append(post_this)
                 except discord.HTTPException:
                     self.logger.warning(f"Failed to post video ID {post_this['id']}, ignoring...")
 
