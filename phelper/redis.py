@@ -70,6 +70,15 @@ class RedisBridge:
         self._need_execution = []
         self._is_stopping = False
 
+    def lock(self, key: str):
+        self._need_execution.append(key)
+
+    def unlock(self, key: str):
+        try:
+            self._need_execution.remove(key)
+        except ValueError:
+            pass
+
     @staticmethod
     def _clean_bson_objectid(objects: dict) -> dict:
         readjusted_data = {}
@@ -178,15 +187,16 @@ class RedisBridge:
         if self._is_stopping:
             return None
         uniq_id = str(uuid.uuid4())
-        self._need_execution.append("get_" + uniq_id)
+        self.lock("get_" + uniq_id)
         try:
             res = await self._conn.get(key)
+            self.unlock("get_" + uniq_id)
             if res is None:
                 return fallback
             res = self.to_original(res)
         except aioredis.RedisError:
-            res = None
-        self._need_execution.remove("get_" + uniq_id)
+            res = fallback
+        self.unlock("get_" + uniq_id)
         return res
 
     async def keys(self, pattern: str) -> List[str]:
@@ -201,12 +211,12 @@ class RedisBridge:
         if self._is_stopping:
             return []
         uniq_id = str(uuid.uuid4())
-        self._need_execution.append("keys_" + uniq_id)
+        self.lock("keys_" + uniq_id)
         try:
             all_keys = await self._conn.keys(pattern)
         except aioredis.RedisError:
             all_keys = []
-        self._need_execution.remove("keys_" + uniq_id)
+        self.unlock("keys_" + uniq_id)
         if not isinstance(all_keys, list):
             return []
         all_keys = [key.decode("utf-8") for key in all_keys]
@@ -227,14 +237,14 @@ class RedisBridge:
             return []
         uniq_id = str(uuid.uuid4())
         all_keys = await self.keys(pattern)
-        self._need_execution.append("getall_" + uniq_id)
         if not isinstance(all_keys, list):
             return []
+        self.lock("getall_" + uniq_id)
         all_values = []
         for key in all_keys:
             r_val = await self.get(key)
             all_values.append(r_val)
-        self._need_execution.remove("getall_" + uniq_id)
+        self.unlock("getall_" + uniq_id)
         return all_values
 
     async def getalldict(self, pattern: str) -> Dict[str, Any]:
@@ -256,14 +266,14 @@ class RedisBridge:
         all_keys = await self.keys(pattern)
         if not isinstance(all_keys, list):
             return {}
-        self._need_execution.append("getalldict_" + uniq_id)
+        self.lock("getalldict_" + uniq_id)
         key_val = {}
         for key in all_keys:
             r_val = await self.get(key)
             if isinstance(key, bytes):
                 key = key.decode("utf-8")
             key_val[key] = r_val
-        self._need_execution.remove("getalldict_" + uniq_id)
+        self.unlock("getalldict_" + uniq_id)
         return key_val
 
     async def set(self, key: str, data: Any) -> bool:
@@ -302,12 +312,12 @@ class RedisBridge:
         if self._is_stopping:
             return False
         uniq_id = str(uuid.uuid4())
-        self._need_execution.append("setex_" + uniq_id)
+        self.lock("setex_" + uniq_id)
         try:
             res = await self._conn.setex(key, expires, self.stringify(data))
         except aioredis.RedisError:
             res = False
-        self._need_execution.remove("setex_" + uniq_id)
+        self.unlock("setex_" + uniq_id)
         return res
 
     async def exist(self, key: str) -> bool:
@@ -321,15 +331,17 @@ class RedisBridge:
         if self._is_stopping:
             return False
         uniq_id = str(uuid.uuid4())
-        self._need_execution.append("exists_" + uniq_id)
+        self.lock("exists_" + uniq_id)
         try:
             res = await self._conn.exists(key)
         except aioredis.RedisError:
             res = 0
-        self._need_execution.remove("exists_" + uniq_id)
+        self.unlock("exists_" + uniq_id)
         if res > 0:
             return True
         return False
+
+    exists = exist
 
     async def rm(self, key: str) -> bool:
         """Remove a key from the database
@@ -342,12 +354,12 @@ class RedisBridge:
         if self._is_stopping:
             return False
         uniq_id = str(uuid.uuid4())
-        self._need_execution.append("delete_" + uniq_id)
+        self.lock("rm_" + uniq_id)
         try:
             res = await self._conn.delete(key)
         except aioredis.RedisError:
             res = 0
-        self._need_execution.remove("delete_" + uniq_id)
+        self.unlock("rm_" + uniq_id)
         if res > 0:
             return True
         return False
