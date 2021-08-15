@@ -5,7 +5,7 @@ import sys
 import traceback
 from contextlib import suppress
 from datetime import datetime, timezone
-from typing import AnyStr, TypeVar, Union
+from typing import AnyStr, Optional, TypeVar, Union
 
 import aiohttp
 import discord
@@ -195,7 +195,7 @@ class PotiaBot(commands.Bot):
                 self.logger.error(f"Failed to load {extension}")
                 self.echo_error(enoff)
 
-    def load_extension(self, name: str, *, package: T.Optional[str] = None):
+    def load_extension(self, name: str, *, package: Optional[str] = None):
         self.logger.info(f"Loading module: {name}")
         super().load_extension(name, package=package)
         self.logger.info(f"{name} module is now loaded!")
