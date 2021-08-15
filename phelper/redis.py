@@ -158,7 +158,7 @@ class RedisBridge:
             await asyncio.sleep(0.2)
             if len(self._need_execution) < 1:
                 break
-            if timeout_delta > current_timeout:
+            if current_timeout > timeout_delta:
                 self.logger.info("Timeout after waiting for 10 seconds, shutting down anyway...")
                 break
             current_timeout += 0.2
