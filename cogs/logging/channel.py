@@ -29,8 +29,8 @@ class LoggingChannel(commands.Cog):
             embed.description = "\n".join(description)
             embed.set_footer(text="🏗 Kanal baru")
             if self._guild is not None:
-                embed.set_thumbnail(url=str(self._guild.icon_url))
-                embed.set_author(name=self._guild.name, icon_url=str(self._guild.icon_url))
+                embed.set_thumbnail(url=str(self._guild.icon))
+                embed.set_author(name=self._guild.name, icon_url=str(self._guild.icon))
             potia_log.embed = embed
         elif action == PotiaModLogAction.CHANNEL_DELETE:
             embed = discord.Embed(
@@ -45,8 +45,8 @@ class LoggingChannel(commands.Cog):
             embed.description = "\n".join(description)
             embed.set_footer(text="💣 Kanal dihapus")
             if self._guild is not None:
-                embed.set_thumbnail(url=str(self._guild.icon_url))
-                embed.set_author(name=self._guild.name, icon_url=str(self._guild.icon_url))
+                embed.set_thumbnail(url=str(self._guild.icon))
+                embed.set_author(name=self._guild.name, icon_url=str(self._guild.icon))
             potia_log.embed = embed
         elif action == PotiaModLogAction.CHANNEL_UPDATE:
             is_name_change = "before" in data
@@ -74,8 +74,8 @@ class LoggingChannel(commands.Cog):
             description.append(f"**• Tipe**: {data['type']}")
             embed.description = "\n".join(description)
             if self._guild is not None:
-                embed.set_thumbnail(url=str(self._guild.icon_url))
-                embed.set_author(name=self._guild.name, icon_url=str(self._guild.icon_url))
+                embed.set_thumbnail(url=str(self._guild.icon))
+                embed.set_author(name=self._guild.name, icon_url=str(self._guild.icon))
             potia_log.embed = embed
         return potia_log
 

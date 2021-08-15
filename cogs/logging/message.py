@@ -59,7 +59,7 @@ class LoggingMessage(commands.Cog):
             if "executor" in data:
                 exegs = data["executor"]
                 embed.add_field(name="Pembersih", value=f"<@{exegs['id']}> ({exegs['id']})", inline=False)
-            embed.set_author(name=f"#{channel_info['name']}", icon_url=str(self._guild.icon_url))
+            embed.set_author(name=f"#{channel_info['name']}", icon_url=str(self._guild.icon))
             embed.set_footer(text=f"❌ Kanal #{channel_info['name']}")
             potia_log.embed = embed
         elif action == PotiaModLogAction.MESSAGE_EDIT:
