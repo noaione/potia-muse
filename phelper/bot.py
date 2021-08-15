@@ -95,8 +95,12 @@ class PotiaBot(commands.Bot):
         await puppet_gen.init()
         await puppet_gen.bind(WelcomeGenerator)
         self.puppet = puppet_gen
+        self.logger.info("Binding new prefixes...")
         prefixes = functools.partial(prefixes_with_data, prefixes_data=fmt_prefixes, default=self.prefix)
         self.command_prefix = prefixes
+        self.logger.info("Binding EventManager")
+        self.pevents = EventManager(self.loop)
+        self.logger.info("Initialization completed!")
 
     async def login(self, *args, **kwargs):
         """Logs in the the bot into Discord."""
