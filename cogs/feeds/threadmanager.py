@@ -1,8 +1,8 @@
-import discord
 import logging
+
+import discord
 from discord.enums import ChannelType
 from discord.ext import commands
-
 from phelper.bot import PotiaBot
 
 

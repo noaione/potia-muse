@@ -1,7 +1,7 @@
 import logging
 from typing import List
-import aiohttp
 
+import aiohttp
 import discord
 from discord.ext import commands, tasks
 from phelper.bot import PotiaBot
