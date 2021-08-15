@@ -1,18 +1,19 @@
 import asyncio
-import json
 import logging
 import uuid
 from typing import Any, Dict, List, Optional
 
 import aioredis
+import orjson
 from bson import ObjectId
 
+__all__ = ["RedisBridge"]
 
-class BSONEncoderExtended(json.JSONEncoder):
-    def default(self, o: Any) -> Any:
-        if isinstance(o, ObjectId):
-            return str(o)
-        return super().default(o)
+
+def BSONObjectEncoder(obj: Any):
+    if isinstance(obj, ObjectId):
+        return str(obj)
+    raise TypeError
 
 
 class RedisBridge:
@@ -58,11 +59,12 @@ class RedisBridge:
         self._pass = password
 
         address = f"redis://{self._host}:{self._port}"
-        kwargs = {"address": address, "loop": self._loop}
+        kwargs = {"url": address}
         if self._pass is not None:
             kwargs["password"] = self._pass
-        self._conn = aioredis.create_redis_pool(**kwargs)
-        self.logger = logging.getLogger("nthelper.redis.RedisBridge")
+        self._pool = aioredis.ConnectionPool.from_url(**kwargs)
+        self._conn = aioredis.Redis(connection_pool=self._pool)
+        self.logger = logging.getLogger("naoTimes.Redis")
         self._is_connected = False
 
         self._need_execution = []
@@ -102,11 +104,11 @@ class RedisBridge:
                     else:
                         _data.append(d)
                 data = _data
-            data = json.dumps(data, ensure_ascii=False, cls=BSONEncoderExtended)
+            data = orjson.dumps(data, default=BSONObjectEncoder).decode("utf-8")
         return data
 
     @staticmethod
-    def to_original(data: Optional[str]) -> Any:
+    def to_original(data: Optional[bytes]) -> Optional[Any]:
         """Convert back data to the possible original data types
 
         For bytes, you need to prepend with `b2dntcode_`
@@ -119,16 +121,17 @@ class RedisBridge:
         """
         if data is None:
             return None
-        if data.isnumeric():
-            return int(data, 10)
-        if data.startswith("b2dntcode_"):
-            data = data[10:]
-            return data.encode("utf-8")
+        parsed = data.decode("utf-8")
+        if parsed.isnumeric():
+            return int(parsed, 10)
+        if parsed.startswith("b2dntcode_"):
+            parsed = parsed[10:]
+            return parsed.encode("utf-8")
         try:
-            data = json.loads(data)
-        except json.JSONDecodeError:
+            parsed = orjson.loads(parsed)
+        except ValueError:
             pass
-        return data
+        return parsed
 
     @property
     def is_stopping(self) -> bool:
@@ -140,7 +143,6 @@ class RedisBridge:
 
         Please execute this function after creating the `claas`
         """
-        self._conn = await self._conn
         self._is_connected = True
 
     async def close(self):
@@ -162,8 +164,8 @@ class RedisBridge:
             current_timeout += 0.2
         self._is_stopping = True
         self.logger.info("All tasks executed, closing connection!")
-        self._conn.close()
-        await self._conn.wait_closed()
+        await self._conn.close()
+        await self._pool.disconnect()
 
     async def get(self, key: str, fallback: Any = None) -> Any:
         """Get a key from the database
@@ -178,11 +180,11 @@ class RedisBridge:
         uniq_id = str(uuid.uuid4())
         self._need_execution.append("get_" + uniq_id)
         try:
-            res = await self._conn.get(key, encoding="utf-8")
+            res = await self._conn.get(key)
             if res is None:
                 return fallback
             res = self.to_original(res)
-        except aioredis.errors.RedisError:
+        except aioredis.RedisError:
             res = None
         self._need_execution.remove("get_" + uniq_id)
         return res
@@ -202,7 +204,7 @@ class RedisBridge:
         self._need_execution.append("keys_" + uniq_id)
         try:
             all_keys = await self._conn.keys(pattern)
-        except aioredis.errors.RedisError:
+        except aioredis.RedisError:
             all_keys = []
         self._need_execution.remove("keys_" + uniq_id)
         if not isinstance(all_keys, list):
@@ -224,18 +226,15 @@ class RedisBridge:
         if self._is_stopping:
             return []
         uniq_id = str(uuid.uuid4())
+        all_keys = await self.keys(pattern)
         self._need_execution.append("getall_" + uniq_id)
-        try:
-            all_keys = await self._conn.keys(pattern)
-        except aioredis.errors.RedisError:
-            all_keys = []
-        self._need_execution.remove("getall_" + uniq_id)
         if not isinstance(all_keys, list):
             return []
         all_values = []
         for key in all_keys:
             r_val = await self.get(key)
             all_values.append(r_val)
+        self._need_execution.remove("getall_" + uniq_id)
         return all_values
 
     async def getalldict(self, pattern: str) -> Dict[str, Any]:
@@ -254,20 +253,17 @@ class RedisBridge:
         if self._is_stopping:
             return {}
         uniq_id = str(uuid.uuid4())
-        self._need_execution.append("getalldict_" + uniq_id)
-        try:
-            all_keys = await self._conn.keys(pattern)
-        except aioredis.RedisError:
-            all_keys = []
-        self._need_execution.remove("getalldict_" + uniq_id)
+        all_keys = await self.keys(pattern)
         if not isinstance(all_keys, list):
             return {}
+        self._need_execution.append("getalldict_" + uniq_id)
         key_val = {}
         for key in all_keys:
             r_val = await self.get(key)
             if isinstance(key, bytes):
                 key = key.decode("utf-8")
             key_val[key] = r_val
+        self._need_execution.remove("getalldict_" + uniq_id)
         return key_val
 
     async def set(self, key: str, data: Any) -> bool:
