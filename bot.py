@@ -2,6 +2,7 @@ import argparse
 import asyncio
 import logging
 import os
+from logging.handlers import RotatingFileHandler
 import pathlib
 import sys
 
@@ -12,13 +13,17 @@ from phelper.bot import PotiaBot, StartupError
 from phelper.config import PotiaBotConfig
 from phelper.utils import __version__, blocking_read_files
 
-logger = logging.getLogger()
+log_file = pathlib.Path("logs", "bot.log")
+log_file.parent.mkdir(exist_ok=True)
+
+file_handler = RotatingFileHandler(log_file, maxBytes=5242880, backupCount=5, encoding="utf-8")
 logging.basicConfig(
     level=logging.DEBUG,
-    handlers=[],
+    handlers=[file_handler],
     format="[%(asctime)s] - (%(name)s)[%(levelname)s](%(funcName)s): %(message)s",  # noqa: E501
     datefmt="%Y-%m-%d %H:%M:%S",
 )
+logger = logging.getLogger()
 coloredlogs.install(
     fmt="[%(asctime)s %(hostname)s][%(levelname)s] (%(name)s[%(process)d]): %(funcName)s: %(message)s",
     level=logging.INFO,
@@ -26,6 +31,7 @@ coloredlogs.install(
     stream=sys.stdout,
 )
 logging.getLogger("discord").setLevel(logging.WARNING)
+logging.getLogger("discord.http").setLevel(logging.DEBUG)
 logging.getLogger("websockets").setLevel(logging.WARNING)
 logging.getLogger("chardet").setLevel(logging.WARNING)
 logging.getLogger("async_rediscache").setLevel(logging.WARNING)
