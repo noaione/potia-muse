@@ -47,7 +47,7 @@ class LoggingMember(commands.Cog):
         desc_data.append(f"**• Terjadi pada**: <t:{rounding(current_time.timestamp())}>")
         author_data = {
             "name": f"{user_data.name}#{user_data.discriminator}",
-            "icon_url": str(user_data.avatar_url),
+            "icon_url": str(user_data.avatar),
         }
         modlog = PotiaModLog(action=action, timestamp=current_time.timestamp())
         if action == PotiaModLogAction.MEMBER_JOIN:
@@ -55,14 +55,14 @@ class LoggingMember(commands.Cog):
             embed.description = "\n".join(desc_data)
             embed.set_footer(text="🚪 Bergabung")
             embed.set_author(**author_data)
-            embed.set_thumbnail(url=str(user_data.avatar_url))
+            embed.set_thumbnail(url=str(user_data.avatar))
             modlog.embed = embed
         elif action == PotiaModLogAction.MEMBER_LEAVE:
             embed = discord.Embed(title="📥 Anggota Keluar", color=0xD66B6B, timestamp=current_time)
             embed.description = "\n".join(desc_data)
             embed.set_footer(text="🚪 Keluar")
             embed.set_author(**author_data)
-            embed.set_thumbnail(url=str(user_data.avatar_url))
+            embed.set_thumbnail(url=str(user_data.avatar))
             modlog.embed = embed
         elif action == PotiaModLogAction.MEMBER_BAN:
             embed = discord.Embed(title="🔨 Anggota terbanned", color=0x8B0E0E, timestamp=current_time)
@@ -73,7 +73,7 @@ class LoggingMember(commands.Cog):
             embed.add_field(name="Alasan", value=f"```\n{ban_data['reason']}\n```", inline=False)
             embed.set_footer(text="🚪🔨 Banned")
             embed.set_author(**author_data)
-            embed.set_thumbnail(url=str(user_data.avatar_url))
+            embed.set_thumbnail(url=str(user_data.avatar))
             modlog.embed = embed
         elif action == PotiaModLogAction.MEMBER_UNBAN:
             embed = discord.Embed(title="🔨👼 Anggota diunbanned", color=0x2BCEC2, timestamp=self.ctime())
@@ -83,7 +83,7 @@ class LoggingMember(commands.Cog):
                 embed.add_field(name="Pemaaf", value=ban_data["forgiver"])
             embed.set_footer(text="🚪👼 Unbanned")
             embed.set_author(**author_data)
-            embed.set_thumbnail(url=str(user_data.avatar_url))
+            embed.set_thumbnail(url=str(user_data.avatar))
             modlog.embed = embed
         elif action == PotiaModLogAction.MEMBER_UPDATE:
             details = data["details"]
@@ -109,7 +109,7 @@ class LoggingMember(commands.Cog):
                 embed.description = "\n".join(nick_desc)
                 embed.set_footer(text="📎 Perubahan Nickname.")
             embed.set_author(**author_data)
-            embed.set_thumbnail(url=str(user_data.avatar_url))
+            embed.set_thumbnail(url=str(user_data.avatar))
             modlog.embed = embed
         return modlog
 

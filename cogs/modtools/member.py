@@ -138,7 +138,7 @@ class ModToolsMember(commands.Cog):
             potia_log = PotiaModLog(PotiaModLogAction.MEMBER_SHADOWBAN)
             current_time = self.bot.now()
             embed = discord.Embed(title="🔨 Shadowbanned", timestamp=current_time)
-            embed.set_author(name=str(self.bot.user), icon_url=self.bot.user.avatar_url)
+            embed.set_author(name=str(self.bot.user), icon_url=self.bot.user.avatar)
             description = f"**• User ID**: {user_id}\n"
             description += f"**• Pada**: <t:{rounding(current_time.timestamp())}:F>\n"
             description += f"**• Tukang palu**: {ctx.author.mention} ({ctx.author.id})"
@@ -160,7 +160,7 @@ class ModToolsMember(commands.Cog):
             potia_log = PotiaModLog(PotiaModLogAction.MEMBER_UNSHADOWBAN)
             current_time = self.bot.now()
             embed = discord.Embed(title="🛡🔨 Unshadowban", timestamp=current_time)
-            embed.set_author(name=str(self.bot.user), icon_url=self.bot.user.avatar_url)
+            embed.set_author(name=str(self.bot.user), icon_url=self.bot.user.avatar)
             description = f"**• User ID**: {user_id}\n"
             description += f"**• Pada**: <t:{rounding(current_time.timestamp())}:F>\n"
             description += f"**• Pemaaf**: {ctx.author.mention} ({ctx.author.id})"

@@ -3,7 +3,8 @@ import logging
 import discord
 from discord.ext import commands
 from phelper.bot import PotiaBot
-from phelper.timeparse import TimeConverter, TimeString
+from phelper.converters import TimeConverter
+from phelper.timeparse import TimeString
 
 
 class ChannelControl(commands.Cog):
