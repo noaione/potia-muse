@@ -118,6 +118,7 @@ class FeedsYoutubeVideo(commands.Cog):
 
     @tasks.loop(minutes=5.0)
     async def _upcoming_watcher(self):
+        channels: discord.TextChannel = self.bot.get_channel(864018911884607508)
         try:
             self.logger.info("Running...")
             upcoming_res = await self.update_upcoming()
@@ -127,7 +128,7 @@ class FeedsYoutubeVideo(commands.Cog):
             embed.set_thumbnail(url=self._museid_info["icon"])
             embed.set_footer(text="Infobox v1.1 | Updated")
             self.logger.info("Updating messages...")
-            partial_msg = self._channels.get_partial_message(self._upcoming_message)
+            partial_msg = channels.get_partial_message(self._upcoming_message)
             if partial_msg is not None:
                 try:
                     await partial_msg.edit(embed=embed)
@@ -139,6 +140,7 @@ class FeedsYoutubeVideo(commands.Cog):
 
     @tasks.loop(minutes=1.0)
     async def _live_watcher(self):
+        channels: discord.TextChannel = self.bot.get_channel(864018911884607508)
         try:
             self.logger.info("Running...")
             current_lives_yt, _, _ = await self.request_muse()
@@ -191,9 +193,7 @@ class FeedsYoutubeVideo(commands.Cog):
                     text=post_this["id"], icon_url="https://s.ytimg.com/yts/img/favicon_144-vfliLAfaB.png"
                 )
                 try:
-                    msg_info: discord.Message = await self._channels.send(
-                        content="Sedang Tayang!", embed=embed
-                    )
+                    msg_info: discord.Message = await channels.send(content="Sedang Tayang!", embed=embed)
                     collected_again.append({"id": post_this["id"], "msg_id": msg_info.id})
                 except discord.HTTPException:
                     self.logger.warning(f"Failed to post video ID {post_this['id']}, ignoring...")
@@ -219,6 +219,7 @@ class FeedsYoutubeVideo(commands.Cog):
 
     @tasks.loop(minutes=2.0)
     async def _archive_feeds_watcher(self):
+        channels: discord.TextChannel = self.bot.get_channel(864018911884607508)
         try:
             self.logger.info("Running...")
             new_feeds = await self.request_feeds_data()
@@ -248,7 +249,7 @@ class FeedsYoutubeVideo(commands.Cog):
                 self.logger.info(f"Posting: {post_this}")
                 text_fmt = f"Rilisan baru di Muse Indonesia! https://youtube.com/watch?v={post_this}"
                 try:
-                    msg_to_publish: discord.Message = await self._channels.send(content=text_fmt)
+                    msg_to_publish: discord.Message = await channels.send(content=text_fmt)
                     try:
                         await msg_to_publish.publish()
                     except HTTPException:
@@ -260,6 +261,13 @@ class FeedsYoutubeVideo(commands.Cog):
             self.logger.info("This run is now finished, sleeping for 2 minutes")
         except Exception as e:
             self.bot.echo_error(e)
+
+    @_upcoming_watcher.before_loop
+    @_live_watcher.before_loop
+    @_archive_feeds_watcher.before_loop
+    async def _before_all_tasks(self):
+        await self.bot.wait_until_ready()
+        self.logger.info("All tasks are now ready")
 
 
 def setup(bot: PotiaBot):

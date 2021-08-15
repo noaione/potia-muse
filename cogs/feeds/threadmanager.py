@@ -10,8 +10,6 @@ class FeedsThreadManager(commands.Cog):
     def __init__(self, bot: PotiaBot):
         self.bot = bot
         self.logger = logging.getLogger("Feeds.ThreadManager")
-        self._guild: discord.Guild = self.bot.get_guild(864004899783180308)
-        self._channel: discord.TextChannel = self._guild.get_channel(864019381230501898)
         self._TEMPLATE = "🔴 | {title} | {id}"
         self._MSG_TEMPLATE = (
             "Thread ini akan digunakan untuk membicarakan `{title}` dengan\nhttps://youtube.com/watch?v={id}"
@@ -29,6 +27,7 @@ class FeedsThreadManager(commands.Cog):
             self.bot.pevents.off(event)
 
     async def _on_new_live_creation(self, data: dict):
+        channel: discord.TextChannel = self.bot.get_channel(864019381230501898)
         live_id = data["id"]
         title = data["title"]
         self.logger.info("Checking if live thread exists...")
@@ -38,7 +37,7 @@ class FeedsThreadManager(commands.Cog):
             return
 
         self.logger.info("Live thread does not exist, creating...")
-        new_thread = await self._channel.start_thread(
+        new_thread = await channel.start_thread(
             name=self._TEMPLATE.format(id=live_id, title=title),
             type=ChannelType.public_thread,
             reason="Live thread",
@@ -47,6 +46,7 @@ class FeedsThreadManager(commands.Cog):
         await self.bot.redis.set(f"potia_livethread_{live_id}", new_thread.id)
 
     async def _on_old_live_archival(self, data: dict):
+        channel: discord.TextChannel = self.bot.get_channel(864019381230501898)
         live_id = data["id"]
         self.logger.info("Checking if live thread exists...")
         exist = await self.bot.redis.get(f"potia_livethread_{live_id}")
@@ -55,9 +55,13 @@ class FeedsThreadManager(commands.Cog):
             return
 
         self.logger.info("Live thread exists, archiving...")
-        the_thread = self._channel.get_thread(exist)
+        the_thread = channel.get_thread(exist)
         if the_thread is None:
             self.logger.warning("Live thread does not exist!")
             return
         await the_thread.edit(archived=True, locked=True)
         await self.bot.redis.delete(f"potia_livethread_{live_id}")
+
+
+def setup(bot: PotiaBot):
+    bot.add_cog(FeedsThreadManager(bot))

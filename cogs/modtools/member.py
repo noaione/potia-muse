@@ -16,8 +16,8 @@ class ModToolsMember(commands.Cog):
         self._shadowbanned = []
         self._currently_muted = []
         self._guild_id = 864004899783180308
-        self._guild: discord.Guild = self.bot.get_guild(self._guild_id)
-        self._mute_role: discord.Role = self._guild.get_role(866180421196447765)
+        self._guild: discord.Guild = None
+        self._mute_role: discord.Role = None
 
         self._rdsb_id = "potiamuse_shadowban"
 
@@ -32,6 +32,8 @@ class ModToolsMember(commands.Cog):
 
     @tasks.loop(count=1, seconds=1)
     async def initialize(self):
+        self._guild = self.bot.get_guild(self._guild_id)
+        self._mute_role = self._guild.get_role(866180421196447765)
         self.logger.info("Collecting shadowbanned user on Muse server...")
         all_shadowbanned: list = await self.bot.redis.get(self._rdsb_id, [])
         self.logger.info(f"Found: {len(all_shadowbanned)} member is shadowbanned.")
@@ -45,6 +47,10 @@ class ModToolsMember(commands.Cog):
                 continue
             if current_ts < currently_mute["max"]:
                 self._currently_muted.append(currently_mute)
+
+    @initialize.before_loop
+    async def _before_init(self):
+        await self.bot.wait_until_ready()
 
     def find_muted_user(self, user_id: int):
         muted_member = list(filter(lambda x: x["id"] == str(user_id), self._currently_muted))

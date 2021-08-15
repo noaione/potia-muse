@@ -82,6 +82,7 @@ class FeedsYoutubePosts(commands.Cog):
 
     @tasks.loop(minutes=3.0)
     async def _youtube_posts(self):
+        self._news_channels: discord.TextChannel = self.bot.get_channel(864043313166155797)
         try:
             self.logger.info("Starting _youtube_posts process...")
             collected_posts = await self.collect_muse_yt_posts()
@@ -116,6 +117,10 @@ class FeedsYoutubePosts(commands.Cog):
         except Exception as e:
             self.logger.error("Failed to run `_youtube_posts`, traceback and stuff:")
             self.bot.echo_error(e)
+
+    @_youtube_posts.before_loop
+    async def _before_loop(self):
+        await self.bot.wait_until_ready()
 
 
 def setup(bot: PotiaBot):

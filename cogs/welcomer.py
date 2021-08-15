@@ -45,7 +45,8 @@ class UserWelcomer(commands.Cog):
 
     @commands.Cog.listener("on_member_join")
     async def _welcome_people(self, member: discord.Member):
-        welcome_gate: discord.TextChannel = self._guild.get_channel(864063431399964693)
+        guild = self.bot.get_guild(864004899783180308)
+        welcome_gate: discord.TextChannel = guild.get_channel(864063431399964693)
 
         welcome_msg, welcome_file = await self._generate_messages_and_files(member)
         if welcome_file is not None:

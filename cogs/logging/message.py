@@ -2,7 +2,7 @@ import logging
 from typing import List, Union
 
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 from phelper.bot import PotiaBot
 from phelper.modlog import PotiaModLog, PotiaModLogAction
 
@@ -12,6 +12,18 @@ class LoggingMessage(commands.Cog):
         self.bot = bot
         self.logger = logging.getLogger("log.LoggingMessage")
         self._guild: discord.Guild = self.bot.get_guild(864004899783180308)
+        self._init_start.start()
+
+    def cog_unload(self):
+        self._init_start.cancel()
+
+    @tasks.loop(seconds=1, count=1)
+    async def _init_start(self):
+        self._guild = self.bot.get_guild(864004899783180308)
+
+    @_init_start.before_loop
+    async def _init_start_before(self):
+        await self.bot.wait_until_ready()
 
     async def _upload_or_not(self, content: str, force_upload: bool = False):
         if not isinstance(content, str):

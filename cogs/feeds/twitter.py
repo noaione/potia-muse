@@ -33,6 +33,7 @@ class FeedsTwitterPosts(commands.Cog):
 
     @tasks.loop(minutes=3.0)
     async def _twitter_posts(self):
+        self._news_channels: discord.TextChannel = self.bot.get_channel(864043313166155797)
         try:
             self.logger.info("Starting _twitter_posts process...")
             collected_posts = await self._fetch_twitter_posts()
@@ -62,3 +63,11 @@ class FeedsTwitterPosts(commands.Cog):
         except Exception as e:
             self.logger.error("Failed to run `_twitter_posts`, traceback and stuff:")
             self.bot.echo_error(e)
+
+    @_twitter_posts.before_loop
+    async def before_twitter_posts(self):
+        await self.bot.wait_until_ready()
+
+
+def setup(bot: PotiaBot):
+    bot.add_cog(FeedsTwitterPosts(bot))

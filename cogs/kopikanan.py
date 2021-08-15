@@ -20,7 +20,7 @@ class KopiKanan(commands.Cog):
         self.bot = bot
         self.logger = logging.getLogger("cogs.KopiKanan")
         self._message = 864062785833664542
-        self._target: discord.TextChannel = self.bot.get_channel(864044945031823360)
+        self._target: discord.TextChannel = None
         self._message_real: discord.Message = None
         self._ongoing_process = {}
 
@@ -41,6 +41,7 @@ class KopiKanan(commands.Cog):
 
     @tasks.loop(seconds=1, count=1)
     async def _prepare_kopikanan_handler(self):
+        self._target: discord.TextChannel = self.bot.get_channel(864044945031823360)
         the_channel: discord.TextChannel = self.bot.get_channel(864019453250633729)
         the_message = the_channel.get_partial_message(self._message)
 
@@ -65,6 +66,10 @@ class KopiKanan(commands.Cog):
             await fetch_msg.clear_reactions()
             await fetch_msg.add_reaction("⚠")
         self._message_real = fetch_msg
+
+    @_prepare_kopikanan_handler.before_loop
+    async def _before_prepare_kopikanan(self):
+        await self.bot.wait_until_ready()
 
     async def _try_send_message(self, member: discord.Member):
         dm_channel: discord.DMChannel = member.dm_channel
