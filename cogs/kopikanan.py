@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime, timezone
+from typing import Dict
 
 import discord
 from discord.ext import commands, tasks
@@ -15,6 +16,74 @@ def try_get(data: dict, key: str):
         return None
 
 
+class KopiKananForwarder:
+    def __init__(self, cancel_id: str, author_id: int, author_name: str, message: str = ""):
+        self._cancel_id = cancel_id
+        self._author_id = author_id
+        self._author_name = author_name
+        self._message = message or ""
+        self._timestamp = datetime.now(tz=timezone.utc).timestamp()
+
+        self._cancelled = False
+
+    @property
+    def cancel_id(self):
+        return self._cancel_id
+
+    @property
+    def is_cancelled(self):
+        return self._cancelled
+
+    @property
+    def author(self):
+        return self._author_name
+
+    @property
+    def author_id(self):
+        return self._author_id
+
+    @property
+    def timestamp(self):
+        return self._timestamp
+
+    @property
+    def message(self):
+        return self._message or ""
+
+    def set_message(self, message: str):
+        self._message = message
+        if message == self._cancel_id:
+            self._cancelled = True
+
+    def set_timestamp(self, timestamp: int):
+        self._timestamp = timestamp
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        timestamp = data["timestamp"]
+        cancel_id = data["cancelId"]
+        author_id = data["author"]
+        author_name = data["authorName"]
+        message = data["message"]
+        the_class = cls(
+            cancel_id,
+            int(author_id),
+            author_name,
+            message,
+        )
+        the_class.set_timestamp(timestamp)
+        return the_class
+
+    def serialize(self):
+        return {
+            "timestamp": self._timestamp,
+            "cancelId": self._cancel_id,
+            "author": self._author_id,
+            "authorName": self._author_name,
+            "message": self._message,
+        }
+
+
 class KopiKanan(commands.Cog):
     def __init__(self, bot: PotiaBot):
         self.bot = bot
@@ -22,6 +91,7 @@ class KopiKanan(commands.Cog):
         self._message = 864062785833664542
         self._target: discord.TextChannel = None
         self._message_real: discord.Message = None
+        self._ONGOING: Dict[int, KopiKananForwarder] = {}
         self._ongoing_process = {}
 
         self._prepare_kopikanan_handler.start()
@@ -29,15 +99,27 @@ class KopiKanan(commands.Cog):
     def cog_unload(self):
         self._prepare_kopikanan_handler.cancel()
 
-    @staticmethod
-    def current_timestamp():
-        return datetime.now(tz=timezone.utc).timestamp()
+    async def get_kopikanan(self, uuid: str):
+        data = await self.bot.redis.get(f"potiakopikanan_{uuid}")
+        if data is not None:
+            return KopiKananForwarder.from_dict(data)
+        return None
+
+    async def set_kopikanan(self, kopikanan: KopiKananForwarder):
+        await self.bot.redis.set(f"potiakopikanan_{kopikanan.author_id}", kopikanan.serialize())
+
+    async def del_kopikanan(self, kopikanan: KopiKananForwarder):
+        await self.bot.redis.rm(f"potiakopikanan_{kopikanan.author_id}")
+
+    async def get_all_kopikanan(self):
+        all_kopikanan = await self.bot.redis.getall("potiakopikanan_*")
+        return [KopiKananForwarder.from_dict(data) for data in all_kopikanan]
 
     async def _send_ihateanime(self, to_be_sent: str):
         current = str(datetime.now(tz=timezone.utc).timestamp())
         filename = f"LaporanKopiKananMuseID_{current}.txt"
 
-        return self.bot.upload_ihateanime(to_be_sent, filename)
+        return await self.bot.upload_ihateanime(to_be_sent, filename)
 
     @tasks.loop(seconds=1, count=1)
     async def _prepare_kopikanan_handler(self):
@@ -67,6 +149,10 @@ class KopiKanan(commands.Cog):
             await fetch_msg.add_reaction("⚠")
         self._message_real = fetch_msg
 
+        all_kopikanan = await self.get_all_kopikanan()
+        for kopikanan in all_kopikanan:
+            self._ONGOING[kopikanan.author_id] = kopikanan
+
     @_prepare_kopikanan_handler.before_loop
     async def _before_prepare_kopikanan(self):
         await self.bot.wait_until_ready()
@@ -76,11 +162,10 @@ class KopiKanan(commands.Cog):
         if dm_channel is None:
             dm_channel = await member.create_dm()
 
-        member_id = str(member.id)
-        processing_data = try_get(self._ongoing_process, member_id)
+        processing_data = self._ONGOING.get(member.id)
         if processing_data is None:
             return
-        close_id = processing_data["cancelId"]
+        close_id = processing_data.cancel_id
         message_start = "Halo! Jika Anda sudah menerima pesan ini, Potia akan membantu Anda dalam "
         message_start += "proses melapor oknum pelanggar hak cipta Muse Indonesia!\nAnda dapat membatalkan "
         message_start += f"proses ini dengan menulis: `{close_id}`\n\n"
@@ -89,13 +174,13 @@ class KopiKanan(commands.Cog):
         message_start += "diteruskan ke Admin Muse Indonesia!"
         await dm_channel.send(message_start)
 
-    async def _forward_copyright_report(self, member_id: str):
-        processing_data = try_get(self._ongoing_process, member_id)
+    async def _forward_copyright_report(self, member_id: int):
+        processing_data = self._ONGOING.get(member_id)
         if processing_data is None:
             return
 
-        content = processing_data["message"]
-        author_name = processing_data["authorName"]
+        content = processing_data.message
+        author_name = processing_data.author
 
         if len(content) > 1950:
             iha_id = await self._send_ihateanime(content)
@@ -105,7 +190,7 @@ class KopiKanan(commands.Cog):
         else:
             real_content = content
 
-        real_timestamp = datetime.fromtimestamp(processing_data["timestamp"], tz=timezone.utc)
+        real_timestamp = datetime.fromtimestamp(processing_data.timestamp, tz=timezone.utc)
         embed = discord.Embed(title="Laporan baru!", timestamp=real_timestamp, color=discord.Color.random())
         embed.set_thumbnail(url="https://p.ihateani.me/mjipsoqd.png")
         embed.description = real_content
@@ -123,17 +208,13 @@ class KopiKanan(commands.Cog):
         the_member: discord.Member = payload.member
         the_emoji = str(payload.emoji)
         if "⚠" in the_emoji and not the_member.bot:
-            member_id = str(the_member.id)
-            if member_id not in self._ongoing_process:
+            member_id = the_member.id
+            is_ongoing = self._ONGOING.get(member_id)
+            if is_ongoing is None:
                 closing_data = f"batalc!{member_id}"
-                data_to_process = {
-                    "timestamp": self.current_timestamp(),
-                    "message": "",
-                    "cancelId": closing_data,
-                    "author": member_id,
-                    "authorName": str(the_member),
-                }
-                self._ongoing_process[member_id] = data_to_process
+                forwarder = KopiKananForwarder(closing_data, member_id, str(the_member))
+                self._ongoing_process[member_id] = forwarder
+                await self.set_kopikanan(forwarder)
                 await self._try_send_message(the_member)
         if self._message_real is not None:
             try:
@@ -149,18 +230,18 @@ class KopiKanan(commands.Cog):
         if message.author.bot:
             return
 
-        user_id = str(message.author.id)
-        complex_data = try_get(self._ongoing_process, user_id)
-        if complex_data is None:
+        user_id = message.author.id
+        kopikanan_frw = self._ONGOING.get(user_id)
+        if kopikanan_frw is None:
             return
 
-        cancelId = complex_data["cancelId"]
-        if message.content == cancelId:
+        kopikanan_frw.set_message(message.content)
+        if kopikanan_frw.is_cancelled:
             await message.channel.send("Dibatalkan!")
             del self._ongoing_process[user_id]
+            await self.del_kopikanan(kopikanan_frw)
             return
-        complex_data["message"] = message.content
-        self._ongoing_process[user_id] = complex_data
+        self._ONGOING[user_id] = kopikanan_frw
 
         confirming = await confirmation_dialog(
             self.bot, message, "Apakah anda yakin ingin mengirim ini?", message
@@ -168,13 +249,14 @@ class KopiKanan(commands.Cog):
         if not confirming:
             await message.channel.send(
                 "Baiklah, mohon tulis ulang kembali. Atau ketik "
-                f"`{complex_data['cancelId']}` untuk membatalkannya"
+                f"`{kopikanan_frw.cancel_id}` untuk membatalkannya"
             )
             return
 
         await self._forward_copyright_report(user_id)
         await message.channel.send("Laporan telah diteruskan! Terima kasih atas laporannya!")
         del self._ongoing_process[user_id]
+        await self.del_kopikanan()
 
     @commands.command(name="ceklaporan")
     @commands.is_owner()
