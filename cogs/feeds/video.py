@@ -32,7 +32,7 @@ class FeedsYoutubeVideo(commands.Cog):
         )
 
         self._last_data = 0
-        self._mock_it = True
+        self._mock_it = False
 
         self._upcoming_watcher.start()
         self._live_watcher.start()
