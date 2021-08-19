@@ -1,6 +1,7 @@
 import logging
 from typing import Dict, List
 
+import discord
 from discord.ext import commands, tasks
 from phelper.bot import PotiaBot
 
@@ -20,6 +21,23 @@ DEFAULT_RULES = """✦ Dilarang TOKSIK dan/atau MEMBULLY!
 ✦ Dilarang bertengkar, sengaja memulai kericuhan, atau memprovokasi! Dilarang memancing keributan. Jika ada yang bermasalah, silakan selesaikan masalah tersebut via japri (Direct/Personal Messages).
 ✦ Dilarang melakukan ancaman dan/atau pelecehan ke pihak mana pun.
 """  # noqa: E501
+
+DEFAULT_MEMBER_INFO = """
+Untuk mengakses kanal lainnya, kamu harus bergabung ke membership Muse Indonesia terlebih dahulu!
+
+Tier minimum untuk bergabung yaitu **MuStar**.
+
+Setelah itu kamu harus menghubungkan akun Discord kamu dengan akun YouTube kamu.
+Silakan ikuti langkah berikut:
+1. Buka `User Settings`
+2. Klik `Connections`
+3. Lalu klik logo <:vtBYT:843473930348920832>
+4. Pastikan kamu masuk dengan akun yang benar!
+
+Jika sudah, mohon tunggu kurang lebih 24 jam.
+Info lebih lanjut, silakan klik [pranala](https://support.discord.com/hc/en-us/articles/215162978-Youtube-Channel-Memberships-Integration-FAQ) berikut.
+"""  # noqa: E501
+_MUSE_LOGO = "https://yt3.ggpht.com/ytc/AKedOLRKt9lXp2AafYyZvIIbciGQPq0j1c1bMrmaqAUs=s0-c-k-c0x00ffffff-no-rj"  # noqa: E501
 
 
 class RulesHandler(commands.Cog):
