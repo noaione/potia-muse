@@ -81,6 +81,7 @@ class LoggingThreads(commands.Cog):
                 if not arch["status"]:
                     lock_ka = "*Thread dibuka kembali*"
                     lock_k = "🔓"
+                arch_desc.append(f"**• Thread**: {data['quick_name']}**")
                 if "author" in arch:
                     arch_desc.append(f"**• Pelaku**: {arch['author']}")
                 arch_desc.append(f"**• Pada**: {self.strftime(arch['timestamp'])}")
@@ -181,6 +182,7 @@ class LoggingThreads(commands.Cog):
 
         details["guild"] = {"name": guild.name, "icon": str(guild.icon)}
         details["channel"] = parent_name
+        details["quick_name"] = f"{after.name} (<#{after.id}>)"
 
         modlog = self._generate_log(PotiaModLogAction.THREAD_UPDATE, details)
         await self.bot.send_modlog(modlog)
