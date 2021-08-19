@@ -1,7 +1,6 @@
 import logging
 from typing import Dict, List
 
-import discord
 from discord.ext import commands, tasks
 from phelper.bot import PotiaBot
 

@@ -32,6 +32,7 @@ class FeedsYoutubeVideo(commands.Cog):
         )
 
         self._last_data = 0
+        self._mock_it = True
 
         self._upcoming_watcher.start()
         self._live_watcher.start()
@@ -114,6 +115,12 @@ class FeedsYoutubeVideo(commands.Cog):
             final_text += add_text
         return final_text
 
+    @commands.command(name="toggleytmock")
+    @commands.is_owner()
+    async def _toggle_yt_mock(self, ctx: commands.Context):
+        self._mock_it = not self._mock_it
+        await ctx.send("Diubah!")
+
     @tasks.loop(minutes=5.0)
     async def _upcoming_watcher(self):
         channels: discord.TextChannel = self.bot.get_channel(864018911884607508)
@@ -160,10 +167,13 @@ class FeedsYoutubeVideo(commands.Cog):
             )
             self.logger.info("Deleting old data first...")
             for deletion in need_to_be_deleted:
+                self.logger.info(f"Trying to delete: {deletion}")
+                if self._mock_it:
+                    continue
                 if "takarir indonesia" in deletion["title"].lower():
                     self.bot.pevents.dispatch("new live", deletion)
                 try:
-                    delete_this: discord.Message = await self._channels.fetch_message(deletion["msg_id"])
+                    delete_this: discord.Message = await channels.fetch_message(deletion["msg_id"])
                     await delete_this.delete()
                 except HTTPException:
                     self.logger.warning(f"Failed to remove video ID {deletion['id']}, ignoring...")
@@ -172,6 +182,8 @@ class FeedsYoutubeVideo(commands.Cog):
             self.logger.info("Now adding new data if exist...")
             for post_this in need_to_be_posted:
                 self.logger.info(f"Posting: {post_this['id']}")
+                if self._mock_it:
+                    continue
 
                 stream_url = f"https://youtube.com/watch?v={post_this['id']}"
                 embed = discord.Embed(
@@ -209,11 +221,13 @@ class FeedsYoutubeVideo(commands.Cog):
             else:
                 channel_name = "rilisan-tayang"
 
-            await self.bot.redis.set("potiamuse_live", collected_again)
-            if is_changed:
+            if not self._mock_it:
+                self.logger.info("Saving data...")
+                await self.bot.redis.set("potiamuse_live", collected_again)
+            if is_changed and not self._mock_it:
                 self.logger.info("Changing the channel name...")
                 try:
-                    await self._channels.edit(name=channel_name)
+                    await channels.edit(name=channel_name)
                 except discord.HTTPException:
                     self.logger.warning("Failed to rename the channel name, ignoring...")
             self.logger.info("This run is now finished, sleeping for 1 minute")

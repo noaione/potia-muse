@@ -26,7 +26,7 @@ class FeedsYoutubePosts(commands.Cog):
         }
 
         self.logger = logging.getLogger("Feeds.YouTubePosts")
-        self._news_channels: discord.TextChannel = self.bot.get_channel(864043313166155797)
+        self._news_channels: discord.TextChannel = self.bot.get_channel(877899711946829905)
         self._youtube_posts.start()
 
     def cog_unload(self):
@@ -82,7 +82,7 @@ class FeedsYoutubePosts(commands.Cog):
 
     @tasks.loop(minutes=3.0)
     async def _youtube_posts(self):
-        self._news_channels: discord.TextChannel = self.bot.get_channel(864043313166155797)
+        self._news_channels: discord.TextChannel = self.bot.get_channel(877899711946829905)
         try:
             self.logger.info("Starting _youtube_posts process...")
             collected_posts = await self.collect_muse_yt_posts()
