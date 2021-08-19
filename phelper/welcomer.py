@@ -1,5 +1,5 @@
 from typing import NamedTuple
-from .puppeeter import PuppeteerCardBase, PuppeeterGeneratorBase
+from .puppeeter import PuppeeterGeneratorBase
 
 
 HTML_STRING = """
@@ -71,7 +71,7 @@ HTML_STRING = """
 """  # noqa: E501
 
 
-class WelcomerCard(PuppeteerCardBase, NamedTuple):
+class WelcomerCard(NamedTuple):
     username: str
     discriminator: str
     avatar: str
