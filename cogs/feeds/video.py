@@ -149,10 +149,6 @@ class FeedsYoutubeVideo(commands.Cog):
         try:
             self.logger.info("Running...")
             current_lives_yt, _, _ = await self.request_muse()
-            if len(current_lives_yt) < 1:
-                self.logger.info("There's no currently live stream, ignoring...")
-                return
-
             self.logger.info("Collecting all posted live message")
             old_posted_yt_lives = await self.bot.redis.get("potiamuse_live", [])
             collected_ids_lives = list(map(lambda x: x["id"], current_lives_yt))
