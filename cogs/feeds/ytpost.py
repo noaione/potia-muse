@@ -34,20 +34,21 @@ class FeedsYoutubePosts(commands.Cog):
 
     async def collect_muse_yt_posts(self):
         self.logger.info("Fetching community pages...")
-        async with self.bot.aiosession.ClientSession() as sesi:
-            async with sesi.get("https://naotimes-og.glitch.me/ytposts/UCxxnxya_32jcKj4yN1_kD7A") as resp:
-                if resp.status != 200:
-                    self.logger.error("Got non 200 status code, returning anyway")
-                    return []
-                content_type: str = resp.headers["content-type"]
-                if not content_type.startswith("application/json"):
-                    self.logger.error("Received response are not JSON ignoring...")
-                    return []
-                try:
-                    all_pages = await resp.json()
-                except Exception:
-                    self.logger.error("Failed to parse JSON response")
-                    return []
+        async with self.bot.aiosession.get(
+            "https://naotimes-og.glitch.me/ytposts/UCxxnxya_32jcKj4yN1_kD7A"
+        ) as resp:
+            if resp.status != 200:
+                self.logger.error("Got non 200 status code, returning anyway")
+                return []
+            content_type: str = resp.headers["content-type"]
+            if not content_type.startswith("application/json"):
+                self.logger.error("Received response are not JSON ignoring...")
+                return []
+            try:
+                all_pages = await resp.json()
+            except Exception:
+                self.logger.error("Failed to parse JSON response")
+                return []
         if not all_pages["success"]:
             self.logger.error("The API failed to parse the posts result")
             return []
