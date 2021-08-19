@@ -42,7 +42,7 @@ class FeedsTwitterPosts(commands.Cog):
                     not_sended_yet.append(post["id"])
 
             message_fmt = "**Postingan baru di Twitter Muse Indonesia!**\n"
-            message_fmt += "Link: <https://twitter.com/muse_indonesia/status/{id}>"
+            message_fmt += "Tautan: https://twitter.com/muse_indonesia/status/{id}"
             for post in not_sended_yet:
                 try:
                     messages: discord.Message = await self._news_channels.send(
