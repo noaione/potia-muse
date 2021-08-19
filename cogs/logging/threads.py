@@ -76,12 +76,12 @@ class LoggingThreads(commands.Cog):
             if "archive" in data:
                 arch = data["archive"]
                 arch_desc = []
+                arch_desc.append(f"**• Thread**: {data['quick_name']}")
                 lock_k = "🔒"
                 lock_ka = "*Thread diarchive*"
                 if not arch["status"]:
                     lock_ka = "*Thread dibuka kembali*"
                     lock_k = "🔓"
-                arch_desc.append(f"**• Thread**: {data['quick_name']}**")
                 if "author" in arch:
                     arch_desc.append(f"**• Pelaku**: {arch['author']}")
                 arch_desc.append(f"**• Pada**: {self.strftime(arch['timestamp'])}")

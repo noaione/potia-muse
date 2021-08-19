@@ -75,7 +75,7 @@ class LoggingChannel(commands.Cog):
                     embed.title = "📈 Perubahan posisi kanal"
                 else:
                     embed.title = "📉 Perubahan posisi kanal"
-                description.append(f"**• Kanal: {data['quick_name']} (<#{data['id']}>)")
+                description.append(f"**• Kanal**: {data['quick_name']} (<#{data['id']}>)")
                 description.append(f"**• Sebelumnya**: Posisi #{data['old'] + 1}")
                 description.append(f"**• Sekarang**: Posisi #{data['new'] + 1}")
                 if "category" in data:
