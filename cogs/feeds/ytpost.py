@@ -99,12 +99,14 @@ class FeedsYoutubePosts(commands.Cog):
                 "**Postingan baru di Laman Komunitas YouTube!**\nLink: <https://www.youtube.com/post/"
             )
             for post in not_sended_yet:
+                self.logger.info(f"Posting ytpost: {post}")
                 try:
                     embed_post = self._generate_embedded_posts(post)
                     messages: discord.Message = await self._news_channels.send(
                         content=message_fmt + post["id"] + ">", embed=embed_post
                     )
                     old_posts_data.append(post["id"])
+                    await self.bot.redis.set("potiamuse_ytposts", old_posts_data)
                 except (discord.Forbidden, discord.HTTPException):
                     self.logger.warning(f"Failed to send this post: {post['id']}")
                     continue
@@ -113,7 +115,6 @@ class FeedsYoutubePosts(commands.Cog):
                 except (discord.Forbidden, discord.HTTPException):
                     self.logger.warning(f"Failed to publish post: {post['id']}, ignoring...")
             self.logger.info("Saving posted data to redis...")
-            await self.bot.redis.set("potiamuse_ytposts", old_posts_data)
         except Exception as e:
             self.logger.error("Failed to run `_youtube_posts`, traceback and stuff:")
             self.bot.echo_error(e)

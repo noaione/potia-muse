@@ -44,11 +44,13 @@ class FeedsTwitterPosts(commands.Cog):
             message_fmt = "**Postingan baru di Twitter Muse Indonesia!**\n"
             message_fmt += "Tautan: https://twitter.com/muse_indonesia/status/{id}"
             for post in not_sended_yet:
+                self.logger.info(f"Posting tweet: {post}")
                 try:
                     messages: discord.Message = await self._news_channels.send(
                         content=message_fmt.format(id=post)
                     )
                     old_posts_data.append(post)
+                    await self.bot.redis.set("potiamuse_twposts", old_posts_data)
                 except (discord.Forbidden, discord.HTTPException):
                     self.logger.warning(f"Failed to send this post: {post}")
                     continue
@@ -56,8 +58,7 @@ class FeedsTwitterPosts(commands.Cog):
                     await messages.publish()
                 except (discord.Forbidden, discord.HTTPException):
                     self.logger.warning(f"Failed to publish post: {post}, ignoring...")
-            self.logger.info("Saving posted data to redis...")
-            await self.bot.redis.set("potiamuse_twposts", old_posts_data)
+                    continue
         except Exception as e:
             self.logger.error("Failed to run `_twitter_posts`, traceback and stuff:")
             self.bot.echo_error(e)
