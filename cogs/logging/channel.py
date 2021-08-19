@@ -30,7 +30,7 @@ class LoggingChannel(commands.Cog):
 
         if action == PotiaModLogAction.CHANNEL_CREATE:
             embed = discord.Embed(
-                "#️⃣ Kanal dibuat", color=discord.Color.from_rgb(63, 154, 115), timestamp=current_time
+                title="#️⃣ Kanal dibuat", color=discord.Color.from_rgb(63, 154, 115), timestamp=current_time
             )
             description = []
             description.append(f"**• Nama**: #{data['name']}")
@@ -46,7 +46,7 @@ class LoggingChannel(commands.Cog):
             potia_log.embed = embed
         elif action == PotiaModLogAction.CHANNEL_DELETE:
             embed = discord.Embed(
-                "#️⃣ Kanal dihapus", color=discord.Color.from_rgb(163, 68, 54), timestamp=current_time
+                title="#️⃣ Kanal dihapus", color=discord.Color.from_rgb(163, 68, 54), timestamp=current_time
             )
             description = []
             description.append(f"**• Nama**: #{data['name']}")
