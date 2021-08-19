@@ -50,12 +50,12 @@ class FeedsTwitterPosts(commands.Cog):
                     )
                     old_posts_data.append(post)
                 except (discord.Forbidden, discord.HTTPException):
-                    self.logger.warning(f"Failed to send this post: {post['id']}")
+                    self.logger.warning(f"Failed to send this post: {post}")
                     continue
                 try:
                     await messages.publish()
                 except (discord.Forbidden, discord.HTTPException):
-                    self.logger.warning(f"Failed to publish post: {post['id']}, ignoring...")
+                    self.logger.warning(f"Failed to publish post: {post}, ignoring...")
             self.logger.info("Saving posted data to redis...")
             await self.bot.redis.set("potiamuse_twposts", old_posts_data)
         except Exception as e:
