@@ -252,7 +252,7 @@ class FeedsYoutubeVideo(commands.Cog):
                     self.logger.warning(f"Failed to post video ID {post_this['id']}, ignoring...")
 
             self.logger.info("Merging with old video data...")
-            old_posted_yt_lives.extend(collected_again)
+            collected_again.extend(old_posted_yt_lives)
             self.logger.info("Checking live status...")
             is_changed = False
             if len(collected_again) != self._last_data:
