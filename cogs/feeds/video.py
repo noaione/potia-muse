@@ -2,7 +2,7 @@ import asyncio
 import logging
 import re
 from datetime import datetime, timedelta, timezone
-from typing import List
+from typing import List, Literal, Optional, Union
 
 import discord
 from discord.errors import HTTPException
@@ -34,6 +34,63 @@ _MOCKED_SAMPLE = {
     ],
     "feeds": [],
 }
+
+
+class LiveData:
+    def __init__(
+        self,
+        id: str,
+        title: str,
+        status: Literal["live", "upcoming", "past"],
+        start_time: int,
+        thumbnail: str,
+        platform: Literal["youtube"],
+        channel: str,
+        message_id: Optional[int] = None,
+    ) -> None:
+        self.id = id
+        self.title = title
+        self.status = status
+        self.start_time = start_time
+        self.thumbnail = thumbnail
+        self.platform = platform
+        self.channel = channel
+        self.message_id = message_id
+
+    def __eq__(self, other: Union[str, "LiveData"]):
+        if isinstance(other, str):
+            return other == self.id
+        elif isinstance(other, LiveData):
+            return self.id == other.id
+        return False
+
+    def __repr__(self) -> str:
+        return f'<LiveData id="{self.id}" {self.start_time}>'
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "LiveData":
+        return cls(
+            id=data["id"],
+            title=data["title"],
+            status=data["status"],
+            start_time=data["startTime"],
+            thumbnail=data["thumbnail"],
+            platform=data["platform"],
+            channel=data["channel"],
+            message_id=data.get("msg_id"),
+        )
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "title": self.title,
+            "status": self.status,
+            "startTime": self.start_time,
+            "thumbnail": self.thumbnail,
+            "platform": self.platform,
+            "channel": self.channel,
+            "msg_id": self.message_id,
+        }
 
 
 class FeedsYoutubeVideo(commands.Cog):
@@ -174,6 +231,19 @@ class FeedsYoutubeVideo(commands.Cog):
         except Exception as e:
             self.bot.echo_error(e)
 
+    async def _get_old_live_data(self):
+        old_posted_raw = await self.bot.redis.get("potiamuse_live")
+        new_data: List[LiveData] = []
+        for post in old_posted_raw:
+            new_data.append(LiveData.from_dict(post))
+        return new_data
+
+    def _parse_new_live(self, data: List[dict]):
+        new_live_data: List[LiveData] = []
+        for d in data:
+            new_live_data.append(LiveData.from_dict(d))
+        return new_live_data
+
     @tasks.loop(minutes=1.0)
     async def _live_watcher(self):
         channels: discord.TextChannel = self.bot.get_channel(864018911884607508)
@@ -181,24 +251,28 @@ class FeedsYoutubeVideo(commands.Cog):
             self.logger.info("Running...")
             current_lives_yt, _, _ = await self.request_muse()
             self.logger.info("Collecting all posted live message")
-            old_posted_yt_lives: list = await self.bot.redis.get("potiamuse_live")
-            self.logger.debug(f"Old live post: {old_posted_yt_lives}")
+            current_lives_yt = self._parse_new_live(current_lives_yt)
+            posted_yt_lives = await self._get_old_live_data()
+            # old_posted_yt_lives: list = await self.bot.redis.get("potiamuse_live")
+            self.logger.debug(f"Old live post: {posted_yt_lives}")
 
             self.logger.info("Propagating the IDs...")
-            collected_posted_ids = [c["id"] for c in old_posted_yt_lives]
+            collected_posted_ids = [c.id for c in posted_yt_lives]
             self.logger.debug(f"Propagated posted IDs: {collected_posted_ids}")
-            collected_lives_ids = [c["id"] for c in current_lives_yt]
+            collected_lives_ids = [c.id for c in current_lives_yt]
             self.logger.debug(f"Propagated lives IDs: {collected_lives_ids}")
 
             self.logger.info("Collecting everything...")
-            need_to_be_deleted = []
-            need_to_be_posted = []
-            for live_id in current_lives_yt:
-                if live_id["id"] not in collected_posted_ids:
-                    need_to_be_posted.append(live_id)
-            for delete_id in old_posted_yt_lives:
-                if delete_id["id"] not in collected_lives_ids:
-                    need_to_be_deleted.append(delete_id)
+            need_to_be_deleted: List[LiveData] = []
+            need_to_be_posted: List[LiveData] = []
+            check_delete_later: List[str] = []
+            for live_info in current_lives_yt:
+                if live_info.id not in collected_posted_ids:
+                    need_to_be_posted.append(live_info)
+            for p_live_info in posted_yt_lives:
+                if p_live_info.id not in collected_lives_ids:
+                    need_to_be_deleted.append(p_live_info)
+                    check_delete_later.append(p_live_info.id)
             self.logger.debug(
                 f"Propagated collection, posts: {need_to_be_deleted}, remove: {need_to_be_posted}"
             )
@@ -207,32 +281,30 @@ class FeedsYoutubeVideo(commands.Cog):
                 self.logger.info(f"Trying to delete: {deletion}")
                 if self._mock_it:
                     continue
-                if "takarir indonesia" in deletion["title"].lower():
+                if "takarir indonesia" in deletion.title.lower():
                     self.bot.pevents.dispatch("remove live", deletion)
                 try:
-                    delete_this: discord.Message = await channels.fetch_message(deletion["msg_id"])
+                    delete_this: discord.Message = await channels.fetch_message(deletion.message_id)
                     await delete_this.delete()
                 except HTTPException:
-                    self.logger.warning(f"Failed to remove video ID {deletion['id']}, ignoring...")
+                    self.logger.warning(f"Failed to remove video ID {deletion.id}, ignoring...")
 
-            collected_again = []
+            collected_again: List[LiveData] = []
             self.logger.info("Now adding new data if exist...")
             for post_this in need_to_be_posted:
-                self.logger.info(f"Posting: {post_this['id']}")
+                self.logger.info(f"Posting: {post_this.id}")
                 if self._mock_it:
                     collected_again.append(post_this)
                     continue
 
-                stream_url = f"https://youtube.com/watch?v={post_this['id']}"
+                stream_url = f"https://youtube.com/watch?v={post_this.id}"
                 embed = discord.Embed(
                     title=post_this["title"],
                     colour=0xFF0000,
                     url=stream_url,
                     description=f"[Tonton Sekarang!]({stream_url})",
                 )
-                embed.set_image(
-                    url=f"https://i.ytimg.com/vi/{post_this['id']}/maxresdefault.jpg"  # noqa: E501
-                )
+                embed.set_image(url=f"https://i.ytimg.com/vi/{post_this.id}/maxresdefault.jpg")  # noqa: E501
                 embed.set_thumbnail(url="https://s.ytimg.com/yts/img/favicon_144-vfliLAfaB.png")
                 embed.set_author(
                     name=self._museid_info["name"],
@@ -240,29 +312,35 @@ class FeedsYoutubeVideo(commands.Cog):
                     url=self._museid_info["url"],
                 )
                 embed.set_footer(
-                    text=post_this["id"], icon_url="https://s.ytimg.com/yts/img/favicon_144-vfliLAfaB.png"
+                    text=post_this.id, icon_url="https://s.ytimg.com/yts/img/favicon_144-vfliLAfaB.png"
                 )
                 try:
                     msg_info: discord.Message = await channels.send(content="Sedang Tayang!", embed=embed)
-                    post_this["msg_id"] = msg_info.id
-                    if "takarir indonesia" in post_this["title"].lower():
-                        self.bot.pevents.dispatch("new live", post_this)
+                    post_this.message_id = msg_info.id
+                    if "takarir indonesia" in post_this.title.lower():
+                        self.bot.pevents.dispatch("new live", post_this.serialize())
                     collected_again.append(post_this)
                 except discord.HTTPException:
-                    self.logger.warning(f"Failed to post video ID {post_this['id']}, ignoring...")
+                    self.logger.warning(f"Failed to post video ID {post_this.id}, ignoring...")
 
             self.logger.info("Merging with old video data...")
-            collected_again.extend(old_posted_yt_lives)
+            collected_again.extend(posted_yt_lives)
+            real_and_true = []
+            for c in collected_again:
+                if c.id not in check_delete_later:
+                    real_and_true.append(c.serialize())
             self.logger.info("Checking live status...")
             is_changed = False
-            if len(collected_again) != self._last_data:
+            if len(real_and_true) != self._last_data:
                 channel_name = "🔴-rilisan-tayang"
                 is_changed = True
             else:
                 channel_name = "rilisan-tayang"
+                is_changed = True
+            self._last_data = len(real_and_true)
 
             self.logger.info("Saving data...")
-            await self.bot.redis.set("potiamuse_live", collected_again)
+            await self.bot.redis.set("potiamuse_live", real_and_true)
             if is_changed and not self._mock_it:
                 self.logger.info("Changing the channel name...")
                 try:
