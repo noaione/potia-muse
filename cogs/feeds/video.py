@@ -181,7 +181,7 @@ class FeedsYoutubeVideo(commands.Cog):
             self.logger.info("Running...")
             current_lives_yt, _, _ = await self.request_muse()
             self.logger.info("Collecting all posted live message")
-            old_posted_yt_lives = await self.bot.redis.get("potiamuse_live")
+            old_posted_yt_lives: list = await self.bot.redis.get("potiamuse_live")
             self.logger.debug(f"Old live post: {old_posted_yt_lives}")
 
             self.logger.info("Propagating the IDs...")
@@ -251,6 +251,8 @@ class FeedsYoutubeVideo(commands.Cog):
                 except discord.HTTPException:
                     self.logger.warning(f"Failed to post video ID {post_this['id']}, ignoring...")
 
+            self.logger.info("Merging with old video data...")
+            old_posted_yt_lives.extend(collected_again)
             self.logger.info("Checking live status...")
             is_changed = False
             if len(collected_again) != self._last_data:
