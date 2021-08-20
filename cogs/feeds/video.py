@@ -9,13 +9,38 @@ from discord.errors import HTTPException
 from discord.ext import commands, tasks
 from phelper.bot import PotiaBot
 
+_MOCKED_SAMPLE = {
+    "live": [
+        {
+            "id": "GRObk6TBtBw",
+            "title": "I, Tsushima - Episode 08 [Takarir Indonesia]",
+            "status": "upcoming",
+            "startTime": 1629481800,
+            "thumbnail": "https://i.ytimg.com/vi/GRObk6TBtBw/maxresdefault.jpg",
+            "platform": "youtube",
+            "channel": "UCxxnxya_32jcKj4yN1_kD7A",
+        },
+    ],
+    "upcoming": [
+        {
+            "id": "GdPh2BFlBi8",
+            "title": "Kupunya Dia dan Dirinya (Kanojo Mo Kanojo) - Episode 08 [Takarir Indonesia]",
+            "status": "upcoming",
+            "startTime": 1629483900,
+            "thumbnail": "https://i.ytimg.com/vi/GdPh2BFlBi8/maxresdefault.jpg",
+            "platform": "youtube",
+            "channel": "UCxxnxya_32jcKj4yN1_kD7A",
+        },
+    ],
+    "feeds": [],
+}
+
 
 class FeedsYoutubeVideo(commands.Cog):
     def __init__(self, bot: PotiaBot) -> None:
         self.bot = bot
 
         self.logger = logging.getLogger("Feeds.YouTubeVideo")
-        self._channels: discord.TextChannel = self.bot.get_channel(864018911884607508)
         self._upcoming_message = 864062464509476874
 
         self._museid_info = {
@@ -44,6 +69,8 @@ class FeedsYoutubeVideo(commands.Cog):
         self._archive_feeds_watcher.start()
 
     async def request_muse(self):
+        if self._mock_it:
+            return _MOCKED_SAMPLE["live"], _MOCKED_SAMPLE["upcoming"], _MOCKED_SAMPLE["feeds"]
         async with self.bot.aiosession.get("https://api.ihateani.me/museid/live") as resp:
             if "json" not in resp.content_type:
                 raise ValueError()
@@ -123,6 +150,8 @@ class FeedsYoutubeVideo(commands.Cog):
 
     @tasks.loop(minutes=5.0)
     async def _upcoming_watcher(self):
+        if self._mock_it:
+            return
         channels: discord.TextChannel = self.bot.get_channel(864018911884607508)
         try:
             self.logger.info("Running...")
@@ -130,6 +159,8 @@ class FeedsYoutubeVideo(commands.Cog):
             embed = discord.Embed(timestamp=datetime.now(tz=self.wib))
             if upcoming_res:
                 embed.add_field(name="Akan datang!", value=self._truncate_fields(upcoming_res), inline=False)
+            else:
+                embed.description = "Tidak ada anime yang akan tayang dalam waktu dekat!"
             embed.set_thumbnail(url=self._museid_info["icon"])
             embed.set_footer(text="Infobox v1.1 | Updated")
             self.logger.info("Updating messages...")
@@ -150,16 +181,26 @@ class FeedsYoutubeVideo(commands.Cog):
             self.logger.info("Running...")
             current_lives_yt, _, _ = await self.request_muse()
             self.logger.info("Collecting all posted live message")
-            old_posted_yt_lives = await self.bot.redis.get("potiamuse_live", [])
-            collected_ids_lives = list(map(lambda x: x["id"], current_lives_yt))
-            collected_ytmsgs_lives = list(map(lambda x: x["id"], old_posted_yt_lives))
+            old_posted_yt_lives = await self.bot.redis.get("potiamuse_live")
+            self.logger.debug(f"Old live post: {old_posted_yt_lives}")
 
-            self.logger.info("Collecting all currently lives data...")
-            need_to_be_deleted = list(
-                filter(lambda x: x["id"] not in collected_ids_lives, old_posted_yt_lives)
-            )
-            need_to_be_posted = list(
-                filter(lambda x: x["id"] not in collected_ytmsgs_lives, current_lives_yt)
+            self.logger.info("Propagating the IDs...")
+            collected_posted_ids = [c["id"] for c in old_posted_yt_lives]
+            self.logger.debug(f"Propagated posted IDs: {collected_posted_ids}")
+            collected_lives_ids = [c["id"] for c in current_lives_yt]
+            self.logger.debug(f"Propagated lives IDs: {collected_lives_ids}")
+
+            self.logger.info("Collecting everything...")
+            need_to_be_deleted = []
+            need_to_be_posted = []
+            for live_id in current_lives_yt:
+                if live_id["id"] not in collected_posted_ids:
+                    need_to_be_posted.append(live_id)
+            for delete_id in old_posted_yt_lives:
+                if delete_id["id"] not in collected_lives_ids:
+                    need_to_be_deleted.append(delete_id)
+            self.logger.debug(
+                f"Propagated collection, posts: {need_to_be_deleted}, remove: {need_to_be_posted}"
             )
             self.logger.info("Deleting old data first...")
             for deletion in need_to_be_deleted:
@@ -179,6 +220,7 @@ class FeedsYoutubeVideo(commands.Cog):
             for post_this in need_to_be_posted:
                 self.logger.info(f"Posting: {post_this['id']}")
                 if self._mock_it:
+                    collected_again.append(post_this)
                     continue
 
                 stream_url = f"https://youtube.com/watch?v={post_this['id']}"
@@ -217,9 +259,8 @@ class FeedsYoutubeVideo(commands.Cog):
             else:
                 channel_name = "rilisan-tayang"
 
-            if not self._mock_it:
-                self.logger.info("Saving data...")
-                await self.bot.redis.set("potiamuse_live", collected_again)
+            self.logger.info("Saving data...")
+            await self.bot.redis.set("potiamuse_live", collected_again)
             if is_changed and not self._mock_it:
                 self.logger.info("Changing the channel name...")
                 try:
@@ -232,6 +273,8 @@ class FeedsYoutubeVideo(commands.Cog):
 
     @tasks.loop(minutes=2.0)
     async def _archive_feeds_watcher(self):
+        if self._mock_it:
+            return
         channels: discord.TextChannel = self.bot.get_channel(864018911884607508)
         try:
             self.logger.info("Running...")
