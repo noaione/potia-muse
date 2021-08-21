@@ -299,7 +299,7 @@ class FeedsYoutubeVideo(commands.Cog):
 
                 stream_url = f"https://youtube.com/watch?v={post_this.id}"
                 embed = discord.Embed(
-                    title=post_this["title"],
+                    title=post_this.title,
                     colour=0xFF0000,
                     url=stream_url,
                     description=f"[Tonton Sekarang!]({stream_url})",
