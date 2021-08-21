@@ -282,7 +282,7 @@ class FeedsYoutubeVideo(commands.Cog):
                 if self._mock_it:
                     continue
                 if "takarir indonesia" in deletion.title.lower():
-                    self.bot.pevents.dispatch("remove live", deletion)
+                    self.bot.pevents.dispatch("remove live", deletion.serialize())
                 try:
                     delete_this: discord.Message = await channels.fetch_message(deletion.message_id)
                     await delete_this.delete()
