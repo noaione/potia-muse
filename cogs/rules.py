@@ -1,5 +1,6 @@
 import logging
 from typing import Dict, List
+import discord
 
 from discord.ext import commands, tasks
 from phelper.bot import PotiaBot
@@ -79,6 +80,18 @@ class RulesHandler(commands.Cog):
     @commands.is_owner()
     async def debugrule(self, ctx: commands.Context):
         await ctx.send(f"There's {len(self._rules)} rules in the bot")
+
+    @commands.command()
+    @commands.is_owner()
+    async def attachgiftutor(self, ctx: commands.Context):
+        channel: discord.TextChannel = self.bot.get_channel(self._rule_channel)
+        message = await channel.fetch_message(877891349163155476)
+
+        the_embed = discord.Embed.from_dict(message.embeds[0].to_dict())
+        the_embed.set_image(
+            url="https://cdn.discordapp.com/attachments/761920289579204608/878977683537666048/FINAL.gif"
+        )
+        await message.edit(embed=the_embed)
 
 
 def setup(bot: PotiaBot):
