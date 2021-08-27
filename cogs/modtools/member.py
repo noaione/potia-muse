@@ -86,7 +86,8 @@ class ModToolsMember(commands.Cog):
         self._mute_check_locked = False
 
     @commands.Cog.listener("on_member_join")
-    async def _watch_user_missing_and_shit(self, guild: discord.Guild, member: discord.Member):
+    async def _watch_user_missing_and_shit(self, member: discord.Member):
+        guild: discord.Guild = member.guild
         if guild.id == self._guild_id:
             if str(member.id) in self._shadowbanned:
                 self.logger.info("Member is shadowbanned on this guild, banning!")
