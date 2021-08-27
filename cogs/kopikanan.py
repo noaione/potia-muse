@@ -92,7 +92,6 @@ class KopiKanan(commands.Cog):
         self._target: discord.TextChannel = None
         self._message_real: discord.Message = None
         self._ONGOING: Dict[int, KopiKananForwarder] = {}
-        self._ongoing_process = {}
 
         self._prepare_kopikanan_handler.start()
 
@@ -213,7 +212,7 @@ class KopiKanan(commands.Cog):
             if is_ongoing is None:
                 closing_data = f"batalc!{member_id}"
                 forwarder = KopiKananForwarder(closing_data, member_id, str(the_member))
-                self._ongoing_process[member_id] = forwarder
+                self._ONGOING[member_id] = forwarder
                 await self.set_kopikanan(forwarder)
                 await self._try_send_message(the_member)
         if self._message_real is not None:
@@ -238,7 +237,7 @@ class KopiKanan(commands.Cog):
         kopikanan_frw.set_message(message.content)
         if kopikanan_frw.is_cancelled:
             await message.channel.send("Dibatalkan!")
-            del self._ongoing_process[user_id]
+            del self._ONGOING[user_id]
             await self.del_kopikanan(kopikanan_frw)
             return
         self._ONGOING[user_id] = kopikanan_frw
@@ -255,13 +254,13 @@ class KopiKanan(commands.Cog):
 
         await self._forward_copyright_report(user_id)
         await message.channel.send("Laporan telah diteruskan! Terima kasih atas laporannya!")
-        del self._ongoing_process[user_id]
+        del self._ONGOING[user_id]
         await self.del_kopikanan()
 
     @commands.command(name="ceklaporan")
     @commands.is_owner()
     async def cek_laporan_yang_ada(self, ctx: commands.Context):
-        all_message_id = list(self._ongoing_process.keys())
+        all_message_id = list(self._ONGOING.keys())
         total = len(all_message_id)
 
         await ctx.send(
