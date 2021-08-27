@@ -159,11 +159,14 @@ class KopiKanan(commands.Cog):
     async def _try_send_message(self, member: discord.Member):
         dm_channel: discord.DMChannel = member.dm_channel
         if dm_channel is None:
+            self.logger.info(f"creating DM channel for kopikanan {member}")
             dm_channel = await member.create_dm()
 
         processing_data = self._ONGOING.get(member.id)
         if processing_data is None:
+            self.logger.warning(f"{member} kopikanan is missing, ignoreing...")
             return
+        self.logger.info(f"{member} sending DM...")
         close_id = processing_data.cancel_id
         message_start = "Halo! Jika Anda sudah menerima pesan ini, Potia akan membantu Anda dalam "
         message_start += "proses melapor oknum pelanggar hak cipta Muse Indonesia!\nAnda dapat membatalkan "
@@ -171,7 +174,11 @@ class KopiKanan(commands.Cog):
         message_start += "Cukup tulis informasi di chat ini dengan link yang membantu, "
         message_start += "nanti Potia akan mengkonfirmasi dulu sebelum akan "
         message_start += "diteruskan ke Admin Muse Indonesia!"
-        await dm_channel.send(message_start)
+        try:
+            self.logger.info(f"{member} sending DM...")
+            await dm_channel.send(message_start)
+        except (discord.Forbidden, discord.HTTPException):
+            self.logger.warning(f"{member} failed to send DM, ignoring...")
 
     async def _forward_copyright_report(self, member_id: int):
         processing_data = self._ONGOING.get(member_id)
@@ -213,7 +220,9 @@ class KopiKanan(commands.Cog):
                 closing_data = f"batalc!{member_id}"
                 forwarder = KopiKananForwarder(closing_data, member_id, str(the_member))
                 self._ONGOING[member_id] = forwarder
+                self.logger.info(f"Creating new kopikanan handler for {the_member}")
                 await self.set_kopikanan(forwarder)
+                self.logger.info(f"Sending message to the {the_member}")
                 await self._try_send_message(the_member)
         if self._message_real is not None:
             try:
