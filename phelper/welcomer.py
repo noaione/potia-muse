@@ -28,7 +28,7 @@ HTML_STRING = """
                 width="128" height="128">
         </div>
         <div style="display: flex; align-items: center; justify-content: center; font-size: 80px; color: #e63a3a">
-            🤝
+            <img src="https://p.ihateani.me/ecseqsvd.svg" width="72" height="72" alt="🤝" />
         </div>
         <div style="display:flex;margin-right: 10px;margin-top: 20px;">
             <img id="img-muse" style="border-radius: 9999px; z-index: 10;  border: 4px solid red;" src="https://yt3.ggpht.com/ytc/AKedOLRKt9lXp2AafYyZvIIbciGQPq0j1c1bMrmaqAUs=s0" width="128" height="128">
