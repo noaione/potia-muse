@@ -36,6 +36,8 @@ Silakan ikuti langkah berikut:
 
 Jika sudah, mohon tunggu kurang lebih 24 jam.
 Info lebih lanjut, silakan klik [pranala](https://support.discord.com/hc/en-us/articles/215162978-Youtube-Channel-Memberships-Integration-FAQ) berikut.
+
+Jika mengalami kendala, kamu dapat menghubungi salah satu <@864010032308027392>
 """  # noqa: E501
 _MUSE_LOGO = "https://yt3.ggpht.com/ytc/AKedOLRKt9lXp2AafYyZvIIbciGQPq0j1c1bMrmaqAUs=s0-c-k-c0x00ffffff-no-rj"  # noqa: E501
 
@@ -91,6 +93,15 @@ class RulesHandler(commands.Cog):
         the_embed.set_image(
             url="https://cdn.discordapp.com/attachments/761920289579204608/878977683537666048/FINAL.gif"
         )
+        await message.edit(embed=the_embed)
+
+    @commands.command()
+    @commands.is_owner()
+    async def update_rule_info(self, ctx: commands.Context):
+        channel: discord.TextChannel = self.bot.get_channel(self._rule_channel)
+        message = await channel.fetch_message(877891349163155476)
+        the_embed = discord.Embed.from_dict(message.embeds[0].to_dict())
+        the_embed.description = DEFAULT_MEMBER_INFO
         await message.edit(embed=the_embed)
 
 
