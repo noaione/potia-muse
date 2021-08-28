@@ -206,7 +206,7 @@ class KopiKanan(commands.Cog):
         author_name = processing_data.author
         parse_gambar = []
         for n, gambar in enumerate(attachments_url, 1):
-            parse_gambar.append(f"[Gambar {n}]({gambar})")
+            parse_gambar.append(f"[Lampiran {n}]({gambar})")
 
         if parse_gambar:
             content += "\n\n" + " \| ".join(parse_gambar)  # noqa: W605
@@ -223,8 +223,15 @@ class KopiKanan(commands.Cog):
         embed = discord.Embed(title="Laporan baru!", timestamp=real_timestamp, color=discord.Color.random())
         embed.set_thumbnail(url="https://p.ihateani.me/mjipsoqd.png")
         if attachments_url:
-            first_image = attachments_url[0]
-            embed.set_image(url=first_image)
+            first_image: str = attachments_url[0]
+            if (
+                first_image.endswith(".gif")
+                or first_image.endswith(".png")
+                or first_image.endswith(".jpg")
+                or first_image.endswith(".jpeg")
+                or first_image.endswith(".webp")
+            ):
+                embed.set_image(url=first_image)
         embed.description = real_content
         embed.set_author(name=author_name)
 
