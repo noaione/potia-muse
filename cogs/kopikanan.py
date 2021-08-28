@@ -299,7 +299,7 @@ class KopiKanan(commands.Cog):
         await self._forward_copyright_report(user_id)
         await message.channel.send("Laporan telah diteruskan! Terima kasih atas laporannya!")
         del self._ONGOING[user_id]
-        await self.del_kopikanan()
+        await self.del_kopikanan(kopikanan_frw)
 
     @commands.command(name="ceklaporan")
     @commands.is_owner()
