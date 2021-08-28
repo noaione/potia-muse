@@ -365,9 +365,12 @@ class ModMail(commands.Cog):
             content_inner.append("Lampiran File:")
             for n, attch in enumerate(message.attachments, 1):
                 content_inner.append(f"#{n}: {attch.filename} - {attch.url} ({attch.type})")
-            full_context.append(content_inner)
+            full_context.extend(content_inner)
 
-        complete_message = "\n\n".join(full_context)
+        complete_message = ""
+        for ctx in full_context:
+            complete_message += "\n".join(ctx) + "\n\n"
+        complete_message = complete_message.rstrip()
         current = str(self.bot.now().timestamp())
         filename = f"ModMailMuseID_{current}_{author}.txt"
         return await self.bot.upload_ihateanime(complete_message, filename)
@@ -457,7 +460,7 @@ class ModMail(commands.Cog):
         log_embed = discord.Embed(title="Tiket baru", timestamp=ts_start)
         log_embed.description = f"Gunakan kanal <#{text_channel.id}> untuk berbicara dengan user."
         name_cut = user.name
-        if user.name > 100:
+        if len(user.name) > 100:
             name_cut = user.name[:90] + "..."
         log_embed.set_footer(text=f"{name_cut}#{user.discriminator}", icon_url=user.avatar)
         await self._log_channel.send(embed=log_embed)
