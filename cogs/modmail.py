@@ -19,7 +19,7 @@ Terima kasih atas perhatiannya, selamat bergabung, dan mohon kerja samanya, ya!
 """  # noqa: E501
 
 
-class ModMailAttachment(NamedTuple):
+class ModMailAttachment:
     def __init__(self, url: str, filename: str, ctype: Optional[str] = None):
         self.url = url
         self.filename = filename
