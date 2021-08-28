@@ -85,7 +85,7 @@ class KopiKananForwarder:
         author_id = data["author"]
         author_name = data["authorName"]
         message = data["message"]
-        attachments = data["attachments"]
+        attachments = data.get("attachments", [])
         the_class = cls(cancel_id, int(author_id), author_name, message, attachments)
         the_class.set_timestamp(timestamp)
         return the_class
@@ -282,9 +282,9 @@ class KopiKanan(commands.Cog):
             del self._ONGOING[user_id]
             await self.del_kopikanan(kopikanan_frw)
             return
-        self._ONGOING[user_id] = kopikanan_frw
         for attach in message.attachments:
-            kopikanan_frw.add_attachment(attach)
+            kopikanan_frw.add_attachment(attach.url)
+        self._ONGOING[user_id] = kopikanan_frw
 
         confirming = await confirmation_dialog(
             self.bot, message, "Apakah anda yakin ingin mengirim ini?", message
