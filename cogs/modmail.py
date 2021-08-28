@@ -7,7 +7,7 @@ import discord
 from discord.ext import commands, tasks
 from phelper.bot import PotiaBot
 
-EMBED_MESSAGE = """<@880773390305206274> <@880773390305206275> <@880773390305206276>
+EMBED_MESSAGE = """<@&880773390305206274> <@&880773390305206275> <@&880773390305206276>
 
 Halo semuanya! Jika kalian ingin menyampaikan keluhan atau kritik-saran untuk peladen (server) ini, kalian bisa mengeklik reaction (📫) yang tersedia di embed berikut. Dimohon sekali untuk tidak DM atau mention role Muse ID. Jika kalian melanggar, akan kami beri teguran langsung berupa Muted selama satu hari.
 Jika anda tidak menerima pesan dari Bot, maka ada kesalahan dan mohon gunakan <#881163159833047060> untuk bantuan lebih lanjut.
