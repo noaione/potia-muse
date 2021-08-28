@@ -309,6 +309,11 @@ class ModMail(commands.Cog):
         embed = discord.Embed(
             title="Pesan diterima", timestamp=the_timestamp, colour=discord.Color.dark_orange()
         )
+        author = forward.message.author
+        cut_name = author.name
+        if len(cut_name) >= 250:
+            cut_name = cut_name[:238] + "..."
+        embed.set_author(name=f"{cut_name}#{author.discriminator}", icon_url=author.avatar)
         embed.description = main_msg.content
         if main_msg.attachments:
             an_image: str = None
