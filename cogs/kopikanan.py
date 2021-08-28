@@ -85,7 +85,7 @@ class KopiKananForwarder:
         author_id = data["author"]
         author_name = data["authorName"]
         message = data["message"]
-        attachments = data.get("attachments", [])
+        attachments = try_get(data, "attachments") or []
         the_class = cls(cancel_id, int(author_id), author_name, message, attachments)
         the_class.set_timestamp(timestamp)
         return the_class
