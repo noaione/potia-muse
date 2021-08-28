@@ -554,6 +554,7 @@ class ModMail(commands.Cog):
         if "📬" in the_emoji and not the_member.bot:
             exist_manager = self._find_manager(the_member, None)
             if exist_manager is None:
+                self.logger.info(f"Initializing new modmail: {the_member}")
                 startup = ModMailHandler(
                     ModMailUser.from_user(the_member),
                     None,
