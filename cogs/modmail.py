@@ -445,7 +445,9 @@ class ModMail(commands.Cog):
             dm_channel = await user_data.create_dm()
 
         ts_start = datetime.fromtimestamp(handler.timestamp, tz=timezone.utc)
-        embed = discord.Embed(title="Modmail dibuka!", timestamp=ts_start)
+        embed = discord.Embed(
+            title="Modmail dibuka!", timestamp=ts_start, colour=discord.Color.dark_magenta()
+        )
         desc = f"Modmail baru telah dibuka oleh **{user.name}#{user.discriminator}**"
         desc += "\nUntuk menutup modmailnya, cukup ketik `=tutup`"
         desc += f"\nTiket/Mod mail dibuat pada <t:{int(handler.timestamp)}>"
@@ -459,7 +461,7 @@ class ModMail(commands.Cog):
         await dm_channel.send(embed=embed)
         await self._update_manager(handler)
 
-        log_embed = discord.Embed(title="Tiket baru", timestamp=ts_start)
+        log_embed = discord.Embed(title="Tiket baru", timestamp=ts_start, colour=discord.Colour.dark_green())
         log_embed.description = f"Gunakan kanal <#{text_channel.id}> untuk berbicara dengan user."
         name_cut = user.name
         if len(user.name) > 100:
