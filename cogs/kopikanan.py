@@ -311,6 +311,65 @@ class KopiKanan(commands.Cog):
             f"Terdapat {total} laporan yang masih aktif dijalankan." + "\n" + "\n - ".join(all_message_id)
         )
 
+    @commands.command(name="ambillaporan")
+    @commands.has_guild_permissions(administrator=True)
+    async def ambil_laporan(self, ctx: commands.Context, user_context: commands.UserConverter):
+        if user_context is None:
+            return await ctx.send("User tidak dapat ditemukan!")
+
+        user_real: discord.User = user_context
+        dm_channel: discord.DMChannel = user_real.dm_channel
+        if dm_channel is None:
+            return await ctx.send("Bot tidak memiliki data DM untuk user tersebut")
+
+        all_messages: List[discord.Message] = await dm_channel.history()
+        START_MESSAGE = "Halo! Jika Anda sudah menerima pesan ini"
+        all_parsed_message: List[discord.Embed] = []
+        for n, message in enumerate(all_messages, 1):
+            if message.author.bot:
+                if message.clean_content.startswith(START_MESSAGE):
+                    break
+                continue
+
+            content = message.clean_content
+            attachments_url = message.attachments
+            author_name = message.author
+            parse_gambar = []
+            for n, gambar in enumerate(attachments_url, 1):
+                parse_gambar.append(f"[Lampiran {n}]({gambar})")
+
+            if parse_gambar:
+                content += "\n\n" + " \| ".join(parse_gambar)  # noqa: W605
+
+            if len(content) > 1950:
+                iha_id = await self._send_ihateanime(content)
+                real_content = "Dikarenakan teks yang dikirim lumayan banyak, <@864027281923506176> telah"
+                real_content += f" mengunggah isi laporannya ke link berikut: <{iha_id}>\n"
+                real_content += "Link tersebut valid selama kurang lebih 2.5 bulan."
+            else:
+                real_content = content
+
+            embed = discord.Embed(
+                title=f"Pesan #{n}", timestamp=message.created_at, color=discord.Color.random()
+            )
+            embed.set_thumbnail(url="https://p.ihateani.me/mjipsoqd.png")
+            embed.set_author(name=str(author_name))
+            embed.description = real_content
+            if attachments_url:
+                first_image: str = attachments_url[0].url
+                if (
+                    first_image.endswith(".gif")
+                    or first_image.endswith(".png")
+                    or first_image.endswith(".jpg")
+                    or first_image.endswith(".jpeg")
+                    or first_image.endswith(".webp")
+                ):
+                    embed.set_image(url=first_image)
+            all_parsed_message.append(embed)
+
+        for pesan in all_parsed_message:
+            await ctx.send(embed=pesan)
+
 
 def setup(bot: PotiaBot):
     bot.add_cog(KopiKanan(bot))
