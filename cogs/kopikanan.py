@@ -324,10 +324,10 @@ class KopiKanan(commands.Cog):
         if dm_channel is None:
             return await ctx.send("Bot tidak memiliki data DM untuk user tersebut")
 
-        all_messages: List[discord.Message] = await dm_channel.history().flatten()
         START_MESSAGE = "Halo! Jika Anda sudah menerima pesan ini"
         all_parsed_message: List[discord.Embed] = []
-        for n, message in enumerate(all_messages, 1):
+        message_no = 1
+        async for message in dm_channel.history(limit=20):
             if message.author.bot:
                 if message.clean_content.startswith(START_MESSAGE):
                     break
@@ -352,7 +352,7 @@ class KopiKanan(commands.Cog):
                 real_content = content
 
             embed = discord.Embed(
-                title=f"Pesan #{n}", timestamp=message.created_at, color=discord.Color.random()
+                title=f"Pesan #{message_no}", timestamp=message.created_at, color=discord.Color.random()
             )
             embed.set_thumbnail(url="https://p.ihateani.me/mjipsoqd.png")
             embed.set_author(name=str(author_name))
@@ -368,6 +368,7 @@ class KopiKanan(commands.Cog):
                 ):
                     embed.set_image(url=first_image)
             all_parsed_message.append(embed)
+            message_no += 1
 
         for pesan in all_parsed_message:
             await ctx.send(embed=pesan)
