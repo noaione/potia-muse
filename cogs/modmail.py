@@ -522,9 +522,9 @@ class ModMail(commands.Cog):
             return
 
         clean_content = message.clean_content
-        if clean_content.startswith("p/"):
+        if clean_content.lower().startswith("p/"):
             return
-        if clean_content.startswith("=tutup"):
+        if clean_content.lower().startswith("=tutup"):
             manager.set_hold()
             await self._update_manager(manager)
             await self._mod_done_queue.put(manager)
