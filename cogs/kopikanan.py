@@ -324,7 +324,7 @@ class KopiKanan(commands.Cog):
         if dm_channel is None:
             return await ctx.send("Bot tidak memiliki data DM untuk user tersebut")
 
-        all_messages: List[discord.Message] = await dm_channel.history()
+        all_messages: List[discord.Message] = await dm_channel.history().flatten()
         START_MESSAGE = "Halo! Jika Anda sudah menerima pesan ini"
         all_parsed_message: List[discord.Embed] = []
         for n, message in enumerate(all_messages, 1):
