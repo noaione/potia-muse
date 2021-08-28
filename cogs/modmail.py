@@ -468,7 +468,7 @@ class ModMail(commands.Cog):
         embed.set_footer(text="📬 Muse Indonesia", icon_url=self._guild.icon)
 
         await text_channel.send(
-            content=f"Mod mail baru oleh **{user.name}#{user.discriminator}**",
+            content=f"<@&864010032308027392> Mod mail baru oleh **{user.name}#{user.discriminator}**",
             embed=embed,
         )
         await dm_channel.send(
