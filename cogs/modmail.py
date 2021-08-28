@@ -445,13 +445,13 @@ class ModMail(commands.Cog):
         ts_start = datetime.fromtimestamp(handler.timestamp, tz=timezone.utc)
         embed = discord.Embed(title="Modmail dibuka!", timestamp=ts_start)
         desc = f"Modmail baru telah dibuka oleh **{user.name}#{user.discriminator}**"
-        desc += "\nUntuk menutup modmailnya, cukup ketik `=close`"
+        desc += "\nUntuk menutup modmailnya, cukup ketik `=tutup`"
         desc += f"\nTiket/Mod mail dibuat pada <t:{int(handler.timestamp)}>"
         embed.description = desc
         embed.set_footer(text="📬 Muse Indonesia", icon_url=self._guild.icon)
 
         await text_channel.send(
-            content=f"<@864010032308027392> Mod mail baru oleh **{user.name}#{user.discriminator}**",
+            content=f"Mod mail baru oleh **{user.name}#{user.discriminator}**",
             embed=embed,
         )
         await dm_channel.send(embed=embed)
