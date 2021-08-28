@@ -356,6 +356,8 @@ class ModMail(commands.Cog):
         prepend_context.append(f"Pada (UNIX): {timestamp}")
         prepend_context.append("=== END OF INFORMATION LINE ===")
         full_context.append(prepend_context)
+        if len(messages) < 1:
+            full_context.append(["*Tidak ada pesan yang ditukar!*"])
         for pos, message in enumerate(messages, 1):
             content_inner = [f"Pesan #{pos}"]
             content_inner.append(f"Dikirim oleh: {message.author} ({message.author.id})")
@@ -365,7 +367,7 @@ class ModMail(commands.Cog):
             content_inner.append("Lampiran File:")
             for n, attch in enumerate(message.attachments, 1):
                 content_inner.append(f"#{n}: {attch.filename} - {attch.url} ({attch.type})")
-            full_context.extend(content_inner)
+            full_context.append(content_inner)
 
         complete_message = ""
         for ctx in full_context:
