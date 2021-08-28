@@ -462,7 +462,9 @@ class ModMail(commands.Cog):
             content=f"Mod mail baru oleh **{user.name}#{user.discriminator}**",
             embed=embed,
         )
-        await dm_channel.send(embed=embed)
+        await dm_channel.send(
+            content="Silakan mulai mengetik, pesan anda akan diteruskan otomatis!", embed=embed
+        )
         await self._update_manager(handler)
 
         log_embed = discord.Embed(title="Tiket baru", timestamp=ts_start, colour=discord.Colour.dark_green())
