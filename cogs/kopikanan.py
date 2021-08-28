@@ -316,6 +316,8 @@ class KopiKanan(commands.Cog):
     async def ambil_laporan(self, ctx: commands.Context, user_context: commands.UserConverter):
         if user_context is None:
             return await ctx.send("User tidak dapat ditemukan!")
+        if ctx.guild.id != 864004899783180308:
+            return await ctx.send("Perintah ini hanya bisa dilakukan di peladen Muse Indonesia!")
 
         user_real: discord.User = user_context
         dm_channel: discord.DMChannel = user_real.dm_channel
