@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime, timezone
-from typing import Dict
+from typing import Dict, List, Union
 
 import discord
 from discord.ext import commands, tasks
@@ -17,11 +17,21 @@ def try_get(data: dict, key: str):
 
 
 class KopiKananForwarder:
-    def __init__(self, cancel_id: str, author_id: int, author_name: str, message: str = ""):
+    def __init__(
+        self,
+        cancel_id: str,
+        author_id: int,
+        author_name: str,
+        message: str = "",
+        attachments: List[discord.Attachment] = [],
+    ):
         self._cancel_id = cancel_id
         self._author_id = author_id
         self._author_name = author_name
         self._message = message or ""
+        self._attachments = []
+        for attach in attachments:
+            self._attachments.append(attach.url)
         self._timestamp = datetime.now(tz=timezone.utc).timestamp()
 
         self._cancelled = False
@@ -50,6 +60,10 @@ class KopiKananForwarder:
     def message(self):
         return self._message or ""
 
+    @property
+    def attachments(self):
+        return self._attachments
+
     def set_message(self, message: str):
         self._message = message
         if message == self._cancel_id:
@@ -58,6 +72,12 @@ class KopiKananForwarder:
     def set_timestamp(self, timestamp: int):
         self._timestamp = timestamp
 
+    def add_attachment(self, attachment: Union[discord.Attachment, str]):
+        if isinstance(attachment, str):
+            self._attachments.append(attachment)
+        elif isinstance(attachment, discord.Attachment):
+            self._attachments.append(attachment.url)
+
     @classmethod
     def from_dict(cls, data: dict):
         timestamp = data["timestamp"]
@@ -65,12 +85,8 @@ class KopiKananForwarder:
         author_id = data["author"]
         author_name = data["authorName"]
         message = data["message"]
-        the_class = cls(
-            cancel_id,
-            int(author_id),
-            author_name,
-            message,
-        )
+        attachments = data["attachments"]
+        the_class = cls(cancel_id, int(author_id), author_name, message, attachments)
         the_class.set_timestamp(timestamp)
         return the_class
 
@@ -81,6 +97,7 @@ class KopiKananForwarder:
             "author": self._author_id,
             "authorName": self._author_name,
             "message": self._message,
+            "attachments": self._attachments,
         }
 
 
@@ -166,7 +183,6 @@ class KopiKanan(commands.Cog):
         if processing_data is None:
             self.logger.warning(f"{member} kopikanan is missing, ignoreing...")
             return
-        self.logger.info(f"{member} sending DM...")
         close_id = processing_data.cancel_id
         message_start = "Halo! Jika Anda sudah menerima pesan ini, Potia akan membantu Anda dalam "
         message_start += "proses melapor oknum pelanggar hak cipta Muse Indonesia!\nAnda dapat membatalkan "
@@ -186,7 +202,14 @@ class KopiKanan(commands.Cog):
             return
 
         content = processing_data.message
+        attachments_url = processing_data.attachments
         author_name = processing_data.author
+        parse_gambar = []
+        for n, gambar in enumerate(attachments_url, 1):
+            parse_gambar.append(f"[Gambar {n}]({gambar})")
+
+        if parse_gambar:
+            content += "\n\n" + " \| ".join(parse_gambar)  # noqa: W605
 
         if len(content) > 1950:
             iha_id = await self._send_ihateanime(content)
@@ -199,6 +222,9 @@ class KopiKanan(commands.Cog):
         real_timestamp = datetime.fromtimestamp(processing_data.timestamp, tz=timezone.utc)
         embed = discord.Embed(title="Laporan baru!", timestamp=real_timestamp, color=discord.Color.random())
         embed.set_thumbnail(url="https://p.ihateani.me/mjipsoqd.png")
+        if attachments_url:
+            first_image = attachments_url[0]
+            embed.set_image(url=first_image)
         embed.description = real_content
         embed.set_author(name=author_name)
 
@@ -250,6 +276,8 @@ class KopiKanan(commands.Cog):
             await self.del_kopikanan(kopikanan_frw)
             return
         self._ONGOING[user_id] = kopikanan_frw
+        for attach in message.attachments:
+            kopikanan_frw.add_attachment(attach)
 
         confirming = await confirmation_dialog(
             self.bot, message, "Apakah anda yakin ingin mengirim ini?", message
