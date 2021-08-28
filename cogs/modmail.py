@@ -543,11 +543,11 @@ class ModMail(commands.Cog):
         await self._mod_queue.put(ModMailForwarder(parsed_message, channel_target, message))
 
     @commands.Cog.listener("on_raw_reaction_add")
-    async def reaction_kopikanan_start(self, payload: discord.RawReactionActionEvent):
+    async def _modmail_reaction_handling(self, payload: discord.RawReactionActionEvent):
         if payload.event_type != "REACTION_ADD":
             return
 
-        if payload.message_id != self._message:
+        if payload.message_id != self._message.id:
             return
         the_member: discord.Member = payload.member
         the_emoji = str(payload.emoji)
