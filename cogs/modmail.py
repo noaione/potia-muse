@@ -405,6 +405,9 @@ class ModMail(commands.Cog):
             colour=discord.Color.dark_orange(),
             timestamp=self.bot.now(),
         )
+        name_cut = user.name
+        if len(user.name) >= 250:
+            name_cut = user.name[:238] + "..."
         embed.set_footer(text="📬 Muse Indonesia", icon_url=self._guild.icon)
         await self._delete_manager(handler)
         await dm_channel.send(embed=embed)
@@ -414,6 +417,7 @@ class ModMail(commands.Cog):
         desc_log += f"\n{iha_url}"
         desc_log += "\n\nLink tersebut valid untuk 2.5 bulan sebelum dihapus selamanya!"
         embed.description = desc_log
+        embed.set_footer(text=f"{name_cut}#{user.discriminator}", icon_url=user.avatar)
         await self._log_channel.send(embed=embed)
         await channel_data.delete(reason="Ticket closed")
 
@@ -475,8 +479,8 @@ class ModMail(commands.Cog):
         log_embed = discord.Embed(title="Tiket baru", timestamp=ts_start, colour=discord.Colour.dark_green())
         log_embed.description = f"Gunakan kanal <#{text_channel.id}> untuk berbicara dengan user."
         name_cut = user.name
-        if len(user.name) > 100:
-            name_cut = user.name[:90] + "..."
+        if len(user.name) >= 250:
+            name_cut = user.name[:238] + "..."
         log_embed.set_footer(text=f"{name_cut}#{user.discriminator}", icon_url=user.avatar)
         await self._log_channel.send(embed=log_embed)
 
