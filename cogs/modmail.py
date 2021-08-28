@@ -333,16 +333,19 @@ class ModMail(commands.Cog):
     async def _modmail_forwareder_task(self):
         while not self._is_ready:
             await asyncio.sleep(0.2)
+        self.logger.info("Starting modmail forwarder task...")
         while True:
             try:
                 message: ModMailForwarder = await self._mod_queue.get()
                 try:
                     await self._actually_forward_message(message)
-                except Exception:
-                    pass
+                except Exception as e:
+                    self.logger.error(f"Failed to execute modmail-forwarder: {e}")
+                    self.bot.echo_error(e)
                 self._mod_queue.task_done()
             except asyncio.CancelledError:
                 break
+        self.logger.info("Finished modmail forwarder task...")
 
     async def _upload_modmail_content(
         self, author: ModMailUser, messages: List[ModMailMessage], timestamp: int
@@ -410,8 +413,9 @@ class ModMail(commands.Cog):
                 self.logger.info("Received modmail finished task...")
                 try:
                     await self._actually_finish_modmail_task(handler)
-                except Exception:
-                    pass
+                except Exception as e:
+                    self.logger.error(f"Failed to execute modmail-finished: {e}")
+                    self.bot.echo_error(e)
                 self.logger.info("Modmail-finished are executed!")
                 self._mod_done_queue.task_done()
             except asyncio.CancelledError:
@@ -468,8 +472,9 @@ class ModMail(commands.Cog):
                 self.logger.info("Received modmail start task...")
                 try:
                     await self._actually_start_modmail_task(handler)
-                except Exception:
-                    pass
+                except Exception as e:
+                    self.logger.error(f"Failed to execute modmail-start: {e}")
+                    self.bot.echo_error(e)
                 self.logger.info("Modmail-start are executed!")
                 self._mod_start_queue.task_done()
             except asyncio.CancelledError:
@@ -517,7 +522,7 @@ class ModMail(commands.Cog):
         author = message.author
         if author.bot:
             return
-        manager, is_admin = self._find_manager(author, message.channel)
+        manager, _ = self._find_manager(author, message.channel)
         if manager is None:
             return
         if manager.is_on_hold:
@@ -536,7 +541,7 @@ class ModMail(commands.Cog):
             return
 
         parsed_message = ModMailMessage.from_message(message)
-        if is_admin:
+        if message.channel.id == manager.channel.id:
             channel_target = manager.user
         else:
             channel_target = manager.channel
