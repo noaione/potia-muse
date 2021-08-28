@@ -288,6 +288,7 @@ class ModMail(commands.Cog):
     async def _actually_forward_message(self, forward: ModMailForwarder):
         channel_target: Union[discord.DMChannel, discord.TextChannel] = None
         if isinstance(forward.target, ModMailUser):
+            self.logger.info(f"Will be sending to user: {forward.target.id}")
             user_target = self.bot.get_user(forward.target.id)
             if user_target is None:
                 return
@@ -296,6 +297,7 @@ class ModMail(commands.Cog):
                 channel_check = await user_target.create_dm()
             channel_target = channel_check
         else:
+            self.logger.info(f"Will be sending to channel: {forward.target.id}")
             channel_check = self._guild.get_channel(forward.target.id)
             if not isinstance(channel_check, discord.TextChannel):
                 return
@@ -538,6 +540,7 @@ class ModMail(commands.Cog):
             channel_target = manager.user
         else:
             channel_target = manager.channel
+        self.logger.info(f"Will be forwarding to {channel_target}")
         manager.add_message(parsed_message)
         await self._update_manager(manager)
         await self._mod_queue.put(ModMailForwarder(parsed_message, channel_target, message))
