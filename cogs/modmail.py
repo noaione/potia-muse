@@ -359,14 +359,17 @@ class ModMail(commands.Cog):
         if len(messages) < 1:
             full_context.append(["*Tidak ada pesan yang ditukar!*"])
         for pos, message in enumerate(messages, 1):
-            content_inner = [f"Pesan #{pos}"]
+            content_inner = [f">> Pesan #{pos} <<"]
             content_inner.append(f"Dikirim oleh: {message.author} ({message.author.id})")
             content_inner.append("")
             content_inner.append(message.content)
             content_inner.append("")
             content_inner.append("Lampiran File:")
-            for n, attch in enumerate(message.attachments, 1):
-                content_inner.append(f"#{n}: {attch.filename} - {attch.url} ({attch.type})")
+            if message.attachments:
+                for n, attch in enumerate(message.attachments, 1):
+                    content_inner.append(f"#{n}: {attch.filename} - {attch.url} ({attch.type})")
+            else:
+                content_inner.append("*Tidak ada lampiran untuk pesan ini*")
             full_context.append(content_inner)
 
         complete_message = ""
