@@ -273,6 +273,26 @@ class ModToolsMember(commands.Cog):
             pass
         await ctx.send("🔊 User berhasil diunmute!")
 
+    @commands.command()
+    @commands.guild_only()
+    async def memberinfo(self, ctx: commands.Context):
+        the_guild = self.bot.get_guild(self._guild_id)
+        musayang_member = the_guild.get_role(880773390305206273).members
+        mustar_member = the_guild.get_role(880773390305206274).members
+        musuper_member = the_guild.get_role(880773390305206275).members
+        muach_member = the_guild.get_role(880773390305206276).members
+
+        total_member = len(musayang_member) + len(mustar_member) + len(musuper_member) + len(muach_member)
+
+        embed = discord.Embed(title="Muse Indonesia - Membership", color=discord.Color.random())
+        embed.description = "<:vtBYT:843473930348920832> Membership"
+        embed.description += f"\nMusayang: {len(musayang_member):,} member"
+        embed.description += f"\nMustar: {len(mustar_member):,} member"
+        embed.description += f"\nMusuper: {len(musuper_member):,} member"
+        embed.description += f"\nMuach: {len(muach_member):,} member"
+        embed.description += f"\n\nTotal: {total_member:,} member"
+        await ctx.send(embed=embed)
+
 
 def setup(bot: PotiaBot):
     bot.add_cog(ModToolsMember(bot))
