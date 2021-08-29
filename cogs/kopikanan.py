@@ -66,7 +66,7 @@ class KopiKananForwarder:
 
     def set_message(self, message: str):
         self._message = message
-        if message == self._cancel_id:
+        if message.lower() == self._cancel_id:
             self._cancelled = True
 
     def set_timestamp(self, timestamp: int):
