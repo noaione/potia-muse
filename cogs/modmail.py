@@ -537,9 +537,7 @@ class ModMail(commands.Cog):
         for backlog in _backlogged_modmail_redis:
             _backlogged_modmail.append(ModMailHandler.from_dict(backlog))
 
-        for backlog in _backlogged_modmail:
-            self.logger.info(f"Restoring modmail from redis: {backlog.user.name}")
-            self._manager[backlog.id] = backlog
+        self._manager = _backlogged_modmail
         self._is_ready = True
 
     @_initialize_modmail.before_loop
