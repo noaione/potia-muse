@@ -289,7 +289,7 @@ class KopiKanan(commands.Cog):
             any_attach = True
         any_sticker = False
         for sticker in message.stickers:
-            kopikanan_frw.add_sticker(sticker.url)
+            kopikanan_frw.add_attachment(sticker.url)
             any_sticker = True
         if any_sticker and (not kopikanan_frw.message or not any_attach):
             return await message.channel.send("Mohon berikan laporan yang benar, jangan cuma kirim stiker!")
