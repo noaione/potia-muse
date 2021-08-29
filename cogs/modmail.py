@@ -30,6 +30,12 @@ class ModMailAttachment:
     def type(self):
         return self._type or ""
 
+    @property
+    def is_sticker(self):
+        if self.filename.startswith("Stiker:") and self._type in ["png", "apng", "lottie"]:
+            return True
+        return False
+
     @classmethod
     def from_dict(cls, data: dict):
         return cls(data["url"], data["filename"], data["type"])
@@ -375,7 +381,10 @@ class ModMail(commands.Cog):
             content_inner = [f">> Pesan #{pos} <<"]
             content_inner.append(f"Dikirim oleh: {message.author} ({message.author.id})")
             content_inner.append("")
-            content_inner.append(message.content)
+            if message.content:
+                content_inner.append(message.content)
+            else:
+                content_inner.append("*Pesan teks kosong*")
             content_inner.append("")
             content_inner.append("Lampiran File:")
             if message.attachments:
