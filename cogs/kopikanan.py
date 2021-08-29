@@ -68,6 +68,7 @@ class KopiKananForwarder:
         self._message = message
         if message.lower() == self._cancel_id:
             self._cancelled = True
+            self._message = ""
 
     def set_timestamp(self, timestamp: int):
         self._timestamp = timestamp
@@ -276,16 +277,22 @@ class KopiKanan(commands.Cog):
         if kopikanan_frw is None:
             return
 
-        kopikanan_frw.set_message(message.content)
+        kopikanan_frw.set_message(message.clean_content)
         if kopikanan_frw.is_cancelled:
             await message.channel.send("Dibatalkan!")
             del self._ONGOING[user_id]
             await self.del_kopikanan(kopikanan_frw)
             return
+        any_attach = False
         for attach in message.attachments:
             kopikanan_frw.add_attachment(attach.url)
+            any_attach = True
+        any_sticker = False
         for sticker in message.stickers:
             kopikanan_frw.add_sticker(sticker.url)
+            any_sticker = True
+        if any_sticker and (not kopikanan_frw.message or not any_attach):
+            return await message.channel.send("Mohon berikan laporan yang benar, jangan cuma kirim stiker!")
         self._ONGOING[user_id] = kopikanan_frw
 
         confirming = await confirmation_dialog(
