@@ -331,10 +331,10 @@ class FeedsYoutubeVideo(commands.Cog):
                     real_and_true.append(c.serialize())
             self.logger.info("Checking live status...")
             is_changed = False
-            if len(real_and_true) != self._last_data:
+            if not channels.name.startswith("🔴") and len(real_and_true) > 0:
                 channel_name = "🔴-rilisan-tayang"
                 is_changed = True
-            else:
+            elif channels.name.startswith("🔴") and len(real_and_true) < 1:
                 channel_name = "rilisan-tayang"
                 is_changed = True
             self._last_data = len(real_and_true)
