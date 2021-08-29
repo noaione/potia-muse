@@ -38,6 +38,10 @@ class ModMailAttachment:
     def from_attachment(cls, data: discord.Attachment):
         return cls(data.url, data.filename, data.content_type)
 
+    @classmethod
+    def from_sticker(cls, data: discord.StickerItem):
+        return cls(data.url, f"Stiker: {data.name}", data.format.name)
+
     def serialize(self):
         return {"url": self.url, "filename": self.filename, "type": self._type}
 
@@ -103,6 +107,9 @@ class ModMailMessage:
         content = data.clean_content
         author = ModMailUser.from_user(data.author)
         attachments = [ModMailAttachment.from_attachment(attachment) for attachment in data.attachments]
+        stickers = data.stickers
+        for sticker in stickers:
+            attachments.append(ModMailAttachment.from_sticker(sticker))
         timestamp = data.created_at.timestamp()
         return cls(author=author, content=content, attachments=attachments, timestamp=timestamp)
 

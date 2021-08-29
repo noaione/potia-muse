@@ -284,6 +284,8 @@ class KopiKanan(commands.Cog):
             return
         for attach in message.attachments:
             kopikanan_frw.add_attachment(attach.url)
+        for sticker in message.stickers:
+            kopikanan_frw.add_sticker(sticker.url)
         self._ONGOING[user_id] = kopikanan_frw
 
         confirming = await confirmation_dialog(
