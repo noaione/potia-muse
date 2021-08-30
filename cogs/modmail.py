@@ -565,11 +565,6 @@ class ModMail(commands.Cog):
             return
 
         is_initiator = author.id == manager.user.id
-
-        if is_initiator and not isinstance(message.channel, discord.DMChannel):
-            self.logger.warning("Received message from initiator, but it's not from DMChannel!")
-            return
-
         clean_content = message.clean_content
         if clean_content.lower().startswith("p/"):
             return
@@ -577,6 +572,9 @@ class ModMail(commands.Cog):
             manager.set_hold()
             await self._update_manager(manager)
             await self._mod_done_queue.put(manager)
+            return
+        if is_initiator and not isinstance(message.channel, discord.DMChannel):
+            self.logger.warning("Received message from initiator, but it's not from DMChannel!")
             return
         if len(clean_content) >= 2000:
             await message.channel.send(content="Pesan anda terlalu panjang, mohon dikurangi!")
