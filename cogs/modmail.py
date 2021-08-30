@@ -564,6 +564,7 @@ class ModMail(commands.Cog):
         if manager.is_on_hold:
             return
 
+        self.logger.info(message.channel)
         clean_content = message.clean_content
         if clean_content.lower().startswith("p/"):
             return
