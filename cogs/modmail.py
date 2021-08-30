@@ -564,7 +564,9 @@ class ModMail(commands.Cog):
         if manager.is_on_hold:
             return
 
-        self.logger.info(message.channel)
+        if isinstance(message.channel, discord.DMChannel):
+            self.logger.info("This message was sent from DMChannel!")
+
         clean_content = message.clean_content
         if clean_content.lower().startswith("p/"):
             return
