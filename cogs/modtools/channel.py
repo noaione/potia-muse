@@ -25,7 +25,10 @@ class ChannelControl(commands.Cog):
                 continue
             if not isinstance(overwrite, discord.PermissionOverwrite):
                 continue
-            overwrite.send_messages = not lockdown
+            if isinstance(lockdown, bool):
+                overwrite.send_messages = not lockdown
+            else:
+                overwrite.send_messages = lockdown
             if lockdown:
                 self.logger.info(f"Locking down channel {str(channel)} for role {role.name}")
             else:
@@ -71,7 +74,7 @@ class ChannelControl(commands.Cog):
         if not isinstance(channel, discord.TextChannel):
             return await ctx.send("Ini bukanlah kanal teks!")
 
-        is_failure = await self._internal_lockdown_channel(channel, False)
+        is_failure = await self._internal_lockdown_channel(channel, None)
 
         if not is_failure:
             try:
@@ -119,7 +122,7 @@ class ChannelControl(commands.Cog):
             if channel.category_id is not None and channel.category_id in ignored_category:
                 self.logger.warning("Channel is in ignored category...")
                 continue
-            is_failure = await self._internal_lockdown_channel(channel, False)
+            is_failure = await self._internal_lockdown_channel(channel, None)
             if is_failure:
                 all_failures.append(channel.mention)
                 await ctx.send(f"⚠ {channel.mention} gagal dibuka kembali!")
