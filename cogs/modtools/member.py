@@ -192,7 +192,7 @@ class ModToolsMember(commands.Cog):
         if member.bot:
             return await ctx.send("🤖 Member tersebut adalah bot! Jadi tidak bisa di mute!")
 
-        already_muted = await self.find_muted_user(member.id)
+        already_muted = self.find_muted_user(member.id)
         if already_muted is not None:
             return await ctx.send("❓ User sudah dimute!")
 
