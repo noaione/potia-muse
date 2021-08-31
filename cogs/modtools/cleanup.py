@@ -51,7 +51,10 @@ class MessageCleanup(commands.Cog):
         for i, emote in enumerate(all_reactions, 1):
             emote_send.append(f"**{i}**. {emote}")
 
-        content = await self.bot.wait_for("on_message", check=lambda m: m.author == ctx.author)
+        def check(m: discord.Message) -> bool:
+            return m.author == ctx.author and m.channel == ctx.channel and m.content.isdigit()
+
+        content = await self.bot.wait_for("message", check=check)
         message = content.clean_content
         if not message.isdigit():
             return await ctx.send("Pesan harus berupa angka!")
