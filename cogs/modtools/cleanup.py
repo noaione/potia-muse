@@ -56,11 +56,11 @@ class MessageCleanup(commands.Cog):
         def check(m: discord.Message) -> bool:
             return m.author == ctx.author and m.channel == ctx.channel and m.content.isdigit()
 
-        content = await self.bot.wait_for("message", check=check)
-        message = content.clean_content
-        if not message.isdigit():
+        content: discord.Message = await self.bot.wait_for("message", check=check)
+        num_con = content.clean_content
+        if not num_con.isdigit():
             return await ctx.send("Pesan harus berupa angka!")
-        pos = int(message) - 1
+        pos = int(num_con) - 1
         if pos < 0 or pos >= len(all_reactions):
             return await ctx.send("Angka tidak didalam range nomor!")
         select = all_reactions[pos]
