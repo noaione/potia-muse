@@ -40,15 +40,29 @@ class MessageCleanup(commands.Cog):
     @commands.guild_only()
     @commands.has_guild_permissions(manage_messages=True)
     async def _modtools_remove_emote(
-        self, ctx: commands.Context, message: commands.MessageConverter, emote: commands.EmojiConverter
+        self, ctx: commands.Context, message: commands.MessageConverter, emote: int
     ):
         if not isinstance(message, discord.Message):
             return await ctx.send("Pesan tidak dapat ditemukan!")
-        if not isinstance(emote, (discord.Emoji, discord.PartialEmoji)):
-            return await ctx.send("Emoji tidak dapat ditemukan!")
 
-        await message.clear_reaction(emote)
-        await ctx.send("Emote dihapus!")
+        all_reactions = message.reactions
+        if not all_reactions:
+            return await ctx.send("Pesan tidak memiliki emote!")
+
+        emote_send = ["Ketik nomor emote yang ingin dihapus!"]
+        for i, emote in enumerate(all_reactions, 1):
+            emote_send.append(f"**{i}**. {emote}")
+
+        content = await self.bot.wait_for("on_message", check=lambda m: m.author == ctx.author)
+        message = content.clean_content
+        if not message.isdigit():
+            return await ctx.send("Pesan harus berupa angka!")
+        pos = int(message) - 1
+        if pos < 0 or pos >= len(all_reactions):
+            return await ctx.send("Angka tidak didalam range nomor!")
+        select = all_reactions[pos]
+        await message.clear_reaction(select.emoji)
+        await ctx.send(f"Emote {select.emoji} dihapus!")
 
     @commands.command(name="cleanuser", aliases=["nukliruser"])
     @commands.guild_only()
