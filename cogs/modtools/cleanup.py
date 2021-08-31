@@ -39,9 +39,7 @@ class MessageCleanup(commands.Cog):
     @commands.command(name="removeemote")
     @commands.guild_only()
     @commands.has_guild_permissions(manage_messages=True)
-    async def _modtools_remove_emote(
-        self, ctx: commands.Context, message: commands.MessageConverter, emote: int
-    ):
+    async def _modtools_remove_emote(self, ctx: commands.Context, message: commands.MessageConverter):
         if not isinstance(message, discord.Message):
             return await ctx.send("Pesan tidak dapat ditemukan!")
 
