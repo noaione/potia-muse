@@ -51,6 +51,8 @@ class MessageCleanup(commands.Cog):
         for i, emote in enumerate(all_reactions, 1):
             emote_send.append(f"**{i}**. {emote}")
 
+        await ctx.send("\n".join(emote_send))
+
         def check(m: discord.Message) -> bool:
             return m.author == ctx.author and m.channel == ctx.channel and m.content.isdigit()
 
