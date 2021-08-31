@@ -36,6 +36,20 @@ class MessageCleanup(commands.Cog):
         deleted_message = await kanal.purge(limit=count, bulk=True)
         await send_timed_msg(ctx, f"Berhasil menghapus {len(deleted_message)} pesan!")
 
+    @commands.command(name="removeemote")
+    @commands.guild_only()
+    @commands.has_guild_permissions(manage_messages=True)
+    async def _modtools_remove_emote(
+        self, ctx: commands.Context, message: commands.MessageConverter, emote: commands.EmojiConverter
+    ):
+        if not isinstance(message, discord.Message):
+            return await ctx.send("Pesan tidak dapat ditemukan!")
+        if not isinstance(emote, (discord.Emoji, discord.PartialEmoji)):
+            return await ctx.send("Emoji tidak dapat ditemukan!")
+
+        await message.clear_reaction(emote)
+        await ctx.send("Emote dihapus!")
+
     @commands.command(name="cleanuser", aliases=["nukliruser"])
     @commands.guild_only()
     @commands.has_guild_permissions(administrator=True)
