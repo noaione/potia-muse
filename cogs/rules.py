@@ -23,9 +23,9 @@ DEFAULT_RULES = """✦ Dilarang TOKSIK dan/atau MEMBULLY!
 """  # noqa: E501
 
 DEFAULT_MEMBER_INFO = """
-Untuk mengakses kanal lainnya, kamu harus bergabung ke membership Muse Indonesia terlebih dahulu!
+Untuk mengakses kanal lainnya, kamu harus bergabung ke [membership Muse Indonesia](https://www.youtube.com/channel/UCxxnxya_32jcKj4yN1_kD7A/join) di YouTube terlebih dahulu!
 
-Tier minimum untuk bergabung yaitu **MuStar**.
+Tier membership minimum untuk bergabung yaitu **MuStar**.
 
 Setelah itu kamu harus menghubungkan akun Discord kamu dengan akun YouTube kamu.
 Silakan ikuti langkah berikut:
