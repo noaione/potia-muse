@@ -38,6 +38,8 @@ Jika sudah, mohon tunggu kurang lebih 24 jam.
 Info lebih lanjut, silakan klik [pranala](https://support.discord.com/hc/en-us/articles/215162978-Youtube-Channel-Memberships-Integration-FAQ) berikut.
 
 Jika mengalami kendala, kamu dapat menghubungi salah satu <@&864010032308027392>
+
+**DIMOHON UNTUK TIDAK MENGHUBUNGI <@&> SAMA SEKALI! (TERMASUK MEMINTA PERTEMANAN!)**
 """  # noqa: E501
 _MUSE_LOGO = "https://yt3.ggpht.com/ytc/AKedOLRKt9lXp2AafYyZvIIbciGQPq0j1c1bMrmaqAUs=s0-c-k-c0x00ffffff-no-rj"  # noqa: E501
 
