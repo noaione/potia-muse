@@ -178,7 +178,7 @@ class ModToolsMember(commands.Cog):
             await self.bot.send_modlog(potia_log)
 
     @commands.command()
-    @commands.has_guild_permissions(manage_member=True)
+    @commands.has_guild_permissions(administrator=True)
     @commands.guild_only()
     async def invitethread(
         self, ctx: commands.Context, thread: commands.ThreadConverter, member: commands.MemberConverter
