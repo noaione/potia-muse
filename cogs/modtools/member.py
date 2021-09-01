@@ -178,6 +178,20 @@ class ModToolsMember(commands.Cog):
             await self.bot.send_modlog(potia_log)
 
     @commands.command()
+    @commands.has_guild_permissions(manage_member=True)
+    @commands.guild_only()
+    async def invitethread(
+        self, ctx: commands.Context, thread: commands.ThreadConverter, member: commands.MemberConverter
+    ):
+        if not isinstance(thread, discord.Thread):
+            return await ctx.send("⁉ Utas tidak ditemukan!")
+        if not isinstance(member, discord.Member):
+            return await ctx.send("⁉ Pemain tidak ditemukan!")
+
+        await thread.add_user(member)
+        await ctx.send(f"{member} telah ditambahkan ke thread {thread.mention}!")
+
+    @commands.command()
     @commands.has_guild_permissions(manage_channels=True, manage_messages=True)
     @commands.guild_only()
     async def mute(
