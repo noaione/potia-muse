@@ -236,7 +236,7 @@ class RaffleSystem(commands.Cog):
         raffle_data.add_entry(queue.entry)
         self._ONGOING_RAFFLES[str(channel.id)] = raffle_data
 
-        await self.bot.redis.set(f"potiaraffle_{channel.id}_{reference.id}", raffle_data.to_dict())
+        await self.bot.redis.set(f"potiaraffle_{raffle_data.id}_{raffle_data.meta.id}", raffle_data.to_dict())
         await channel.send("Nomor anda dimasukan ke undian!", reference=reference)
 
     async def _raffle_joiner_task(self):
@@ -344,7 +344,7 @@ class RaffleSystem(commands.Cog):
             del self._ONGOING_RAFFLES[str(channel.id)]
             self._FINISHED_RAFFLES[str(reference_msg.message_id)] = raffle_data
             await self.bot.redis.set(
-                f"potiaraffle_{channel.id}_{reference_msg.message_id}", raffle_data.to_dict()
+                f"potiaraffle_{raffle_data.id}_{raffle_data.meta.id}", raffle_data.to_dict()
             )
 
         select_winner = random.choice(entries)
