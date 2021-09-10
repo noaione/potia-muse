@@ -203,6 +203,7 @@ class RaffleSystem(commands.Cog):
     _VALID_ROLES = [
         880773390305206276,
         880773390305206275,
+        864010032308027392,
     ]
 
     def __init__(self, bot: PotiaBot):
