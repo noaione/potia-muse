@@ -159,8 +159,8 @@ class Raffle:
 
     def number_exist(self, entry: RaffleEntry):
         if entry.number in self._get_numbers():
-            return False
-        return True
+            return True
+        return False
 
     def remove_entry(self, entry: RaffleEntry):
         if entry not in self._entries:
