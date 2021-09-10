@@ -279,8 +279,9 @@ class RaffleSystem(commands.Cog):
         content = message.clean_content
         if not content.isdigit() and member_id not in raffle:
             return await channel.send("Mohon berikan angka undian yang benar!", reference=message)
-
-        if member_id in raffle:
+        elif not content.isdigit() and member_id in raffle:
+            return
+        elif content.isdigit() and member_id in raffle:
             return await channel.send(f"Anda sudah ikut undian **{raffle.item}**!", reference=message)
 
         entry = RaffleEntry.from_user(member)
@@ -348,7 +349,7 @@ class RaffleSystem(commands.Cog):
 
         select_winner = random.choice(entries)
         await ctx.send(
-            f"Selamat kepada <@{select_winner.id}>, anda mendapatkan **{raffle_data.item}**!"
+            f"Selamat kepada <@{select_winner.id}>, anda mendapatkan **{raffle_data.item}**!\n"
             f"Nomor undian anda adalah: {select_winner.number}",
             reference=reference_msg,
         )
