@@ -351,3 +351,7 @@ class RaffleSystem(commands.Cog):
             f"Nomor undian anda adalah: {select_winner.number}",
             reference=reference_msg,
         )
+
+
+def setup(bot: PotiaBot):
+    bot.add_cog(RaffleSystem(bot))
