@@ -2,6 +2,7 @@ import logging
 from typing import List
 
 import discord
+from discord.errors import HTTPException
 from discord.ext import commands, tasks
 from phelper.bot import PotiaBot
 from phelper.modlog import PotiaModLog, PotiaModLogAction
@@ -306,6 +307,41 @@ class ModToolsMember(commands.Cog):
         embed.description += f"\nMuach: {len(muach_member):,} member"
         embed.description += f"\n\nTotal: {total_member:,} member"
         await ctx.send(embed=embed)
+
+    @commands.command()
+    @commands.guild_only()
+    @commands.has_guild_permissions(administrator=True)
+    async def changeroleicon(self, ctx: commands.Context):
+        await ctx.send("Mencoba mengubah ikon...")
+        guild: discord.Guild = ctx.guild
+        role_sets = {
+            "star": {
+                "id": 880773390305206274,
+                "icon": "https://yt3.ggpht.com/7d7ybLT80mpsGqYbm36Zt9bX0u243nJP48IycCADYeg10ASUT5UQgjjhOT5ym31Mqkdd83-jHdM=s0",
+            },
+            "super": {
+                "id": 880773390305206275,
+                "icon": "https://yt3.ggpht.com/LLsEoEIRVv0pSTjbrY0R1s6pG9J-EMkyPoPxijr05b4U8f_bxUjaymFxOYBfVY2NDee3zWk0=s0",
+            },
+            "ach": {
+                "id": 880773390305206276,
+                "icon": "https://yt3.ggpht.com/sf5BA1ix4dJ46kd05RN7L9FV5_dENnIzTRRwFViRgNW4faMcroeXIXFffWNdmXtVbTQRYNu42A=s0",
+            },
+        }
+
+        for key, value in role_sets.items():
+            await ctx.send(f"Mencoba mengubah ikon Mu{key}")
+            role = guild.get_role(value["id"])
+            if role is not None:
+                self.logger.info(f"Downloading Mu{key} icon...")
+                icon_bytes = await self.bot.aiosession.get(value["icon"])
+                read_bytes = await icon_bytes.read()
+                self.logger.info(f"Changing icon Mu{key} for real...")
+                try:
+                    await role.edit(icon=read_bytes)
+                    await ctx.send(f"Berhasil(?) mengubah ikon Mu{key}")
+                except HTTPException:
+                    await ctx.send(f"Tidak dapat mengubah role icon untuk Mu{key}")
 
 
 def setup(bot: PotiaBot):

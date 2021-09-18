@@ -1,8 +1,7 @@
 # base discord stuff
 aiohttp==3.7.4.post0
 # Discord.py
--e git+https://github.com/Rapptz/discord.py.git@1e17b7fceaf7173b1666465e639d1bebaa126683#egg=discord.py
-discord-py-slash-command==2.4.2
+-e git+https://github.com/naoTimesdev/ndiscord.py@guild/role-icons#egg=ndiscord.py
 
 aioredis==2.0.0
 aiofiles==0.7.0
