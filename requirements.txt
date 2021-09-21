@@ -1,7 +1,7 @@
 # base discord stuff
 aiohttp==3.7.4.post0
 # Discord.py
--e git+https://github.com/naoTimesdev/ndiscord.py@guild/role-icons#egg=ndiscord.py
+-e git+https://github.com/naoTimesdev/ndiscord.py@b11c187427b711f8c44b65dcdb288992452c584a#egg=ndiscord.py
 
 aioredis==2.0.0
 aiofiles==0.7.0
