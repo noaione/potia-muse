@@ -167,6 +167,7 @@ class ModMailHandler:
         self._messages = messages
         self._timestamp = timestamp or datetime.now(tz=timezone.utc).timestamp()
         self._on_hold = False
+        self._closer: Optional[ModMailUser] = None
 
     def __iter__(self):
         for message in self._messages:
@@ -196,6 +197,10 @@ class ModMailHandler:
     def timestamp(self):
         return self._timestamp
 
+    @property
+    def closer(self):
+        return self._closer
+
     def add_message(self, message: ModMailMessage):
         self._messages.append(message)
 
@@ -204,6 +209,9 @@ class ModMailHandler:
 
     def set_unhold(self):
         self._on_hold = False
+
+    def set_closer(self, user: ModMailUser):
+        self._closer = user
 
     @property
     def is_on_hold(self):
@@ -367,7 +375,7 @@ class ModMail(commands.Cog):
         self.logger.info("Finished modmail forwarder task...")
 
     async def _upload_modmail_content(
-        self, author: ModMailUser, messages: List[ModMailMessage], timestamp: int
+        self, author: ModMailUser, messages: List[ModMailMessage], closer: ModMailUser, timestamp: int
     ):
         full_context = []
         prepend_context = ["=== Informasi Tiket ==="]
@@ -393,6 +401,12 @@ class ModMail(commands.Cog):
             else:
                 content_inner.append("*Tidak ada lampiran untuk pesan ini*")
             full_context.append(content_inner)
+        postpend_context = ["======================================="]
+        current_time = int(self.bot.now().timestamp())
+        postpend_context.append(f"Tiket ditutup pada: {current_time}")
+        postpend_context.append(f"Tiket ditutup oleh: {closer} ({closer.id})")
+        postpend_context.append("========== Akhir pembicaraan ==========")
+        full_context.append(postpend_context)
 
         complete_message = ""
         for ctx in full_context:
@@ -415,6 +429,10 @@ class ModMail(commands.Cog):
         if channel_data is None:
             return
 
+        iha_url = await self._upload_modmail_content(
+            user, handler.messages, handler.closer, handler.timestamp
+        )
+
         embed = discord.Embed(
             title="Tiket ditutup",
             description="Terima kasih sudah menggunakan fitur modmail kami!",
@@ -424,10 +442,13 @@ class ModMail(commands.Cog):
         name_cut = user.name
         if len(user.name) >= 250:
             name_cut = user.name[:238] + "..."
+        desc_log = "Terima kasih sudah menggunakan fitur modmail kami!\n"
+        desc_log += "Anda dapat melihat log pembicaraan di link berikut:"
+        desc_log += f"\n{iha_url}"
+        embed.description = desc_log
         embed.set_footer(text="📬 Muse Indonesia", icon_url=self._guild.icon)
         await self._delete_manager(handler)
         await dm_channel.send(embed=embed)
-        iha_url = await self._upload_modmail_content(user, handler.messages, handler.timestamp)
         self.logger.info(f"logged url: {iha_url}")
         desc_log = "Berikut adalah log semua pesan yang dikirim:"
         desc_log += f"\n{iha_url}"
@@ -569,8 +590,11 @@ class ModMail(commands.Cog):
         if clean_content.lower().startswith("p/"):
             return
         if clean_content.lower().startswith("=tutup"):
+            closer = ModMailUser.from_user(author)
             manager.set_hold()
+            manager.set_closer(closer)
             await self._update_manager(manager)
+            await message.channel.send(content="Menutup tiket...")
             await self._mod_done_queue.put(manager)
             return
         if is_initiator and not isinstance(message.channel, discord.DMChannel):
