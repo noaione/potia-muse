@@ -6,7 +6,7 @@ from discord.ext import commands
 from phelper.bot import PotiaBot
 
 
-class AlumniRole:
+class AlumniRole(commands.Cog):
     _VALID_MEMBER_ROLE = [
         880773390305206276,
         880773390305206275,
