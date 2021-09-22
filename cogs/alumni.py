@@ -93,3 +93,7 @@ class AlumniRole:
             except discord.HTTPException:
                 self.logger.warning(f"Failed to give {member} an alumnus role!")
         await pesan.edit(content=f"Berhasil menambah role Alumni untuk {added_roles}")
+
+
+def setup(bot: PotiaBot):
+    bot.add_cog(AlumniRole(bot))
