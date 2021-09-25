@@ -45,6 +45,62 @@ class AlumniRole(commands.Cog):
     #         await after.add_roles(alumnus_role)
     #         self.logger.info(f"User {before} got their alumnus role!")
 
+    @commands.command(name="alumni")
+    @commands.dm_only()
+    async def _minta_alumni_cmd(self, ctx: commands.Context):
+        """
+        Minta alumni role
+        """
+        message: discord.Message = ctx.message
+        attachments = message.attachments
+
+        if len(attachments) < 1:
+            return await ctx.send("Mohon cantumkan gambar membership Muse Indonesia anda!", reference=message)
+
+        find_image = None
+        for attach in attachments:
+            if attach.content_type.startswith("image"):
+                find_image = attach
+
+        if find_image is None:
+            return await ctx.send("Potia tidak dapat menemukan gambar di pesan anda", reference=message)
+
+        channel_target: discord.TextChannel = self.bot.get_channel(891247118403137546)
+        simple_embed = discord.Embed(color=discord.Color.green())
+        simple_embed.description = f"User ID: {ctx.author.id}\n"
+        simple_embed.description += f"Nama: {ctx.author}"
+        timestamp = int(round(message.created_at.timestamp()))
+        simple_embed.description += f"Minta pada: <t:{timestamp}:F>"
+        await channel_target.send(
+            content="Permintaan baru untuk role Alumni\n"
+            "Jika gambar benar silakan gunakan `p/berialumni USER_ID`\n"
+            "Jika salah, balas dengan `p/tolakalumni USER_ID isi pesan yang panjang`",
+            embed=simple_embed,
+        )
+
+        await ctx.send(
+            "Terima kasih sudah meminta verifikasi untuk role Alumni, mohon tunggu kurang lebih 24 jam."
+        )
+
+    @commands.command(name="tolakalumni")
+    @commands.guild_only()
+    @commands.has_permissions(administrator=True)
+    async def _tolak_alumni_cmd(self, ctx: commands.Context, user: commands.UserConverter, *, pesan: str):
+        if not isinstance(user, discord.User):
+            return await ctx.send("Tidak dapat menemukan user tersebut!")
+
+        dm_target = user.dm_channel
+        if dm_target is None:
+            dm_target = await user.create_dm()
+
+        if not pesan:
+            return await ctx.send("Mohon berikan alasan kenapa rikues user tersebut ditolak!")
+
+        await dm_target.send(
+            content="Permintaan role Alumni anda di tolak, berikut adalah pesan dari Adminstrator:\n"
+            f"```\n{pesan}\n```"
+        )
+
     @commands.command(name="berialumni")
     @commands.guild_only()
     async def _beri_alumni_cmd(self, ctx: commands.Context, target: commands.MemberConverter):
