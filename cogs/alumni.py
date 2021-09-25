@@ -30,20 +30,20 @@ class AlumniRole(commands.Cog):
                 return True
         return False
 
-    @commands.Cog.listener("on_member_update")
-    async def _member_alumni_role_auto(self, before: discord.Member, after: discord.Member):
-        if before.guild.id != 864004899783180308:
-            return
-        muse_guild = before.guild
-        role_before, role_after = before.roles, after.roles
-        if self._has_any_role(role_before) or self._has_any_role(role_after):
-            self.logger.info(f"User {before} have a member role, giving alumnus role...")
-            if self._has_alumnus_role(role_before) or self._has_alumnus_role(role_after):
-                self.logger.info(f"User {before} already have alumnus role, skipping...")
-                return
-            alumnus_role = muse_guild.get_role(890102605789937745)
-            await after.add_roles(alumnus_role)
-            self.logger.info(f"User {before} got their alumnus role!")
+    # @commands.Cog.listener("on_member_update")
+    # async def _member_alumni_role_auto(self, before: discord.Member, after: discord.Member):
+    #     if before.guild.id != 864004899783180308:
+    #         return
+    #     muse_guild = before.guild
+    #     role_before, role_after = before.roles, after.roles
+    #     if self._has_any_role(role_before) or self._has_any_role(role_after):
+    #         self.logger.info(f"User {before} have a member role, giving alumnus role...")
+    #         if self._has_alumnus_role(role_before) or self._has_alumnus_role(role_after):
+    #             self.logger.info(f"User {before} already have alumnus role, skipping...")
+    #             return
+    #         alumnus_role = muse_guild.get_role(890102605789937745)
+    #         await after.add_roles(alumnus_role)
+    #         self.logger.info(f"User {before} got their alumnus role!")
 
     @commands.command(name="berialumni")
     @commands.guild_only()
