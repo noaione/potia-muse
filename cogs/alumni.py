@@ -68,9 +68,11 @@ class AlumniRole(commands.Cog):
         channel_target: discord.TextChannel = self.bot.get_channel(891247118403137546)
         simple_embed = discord.Embed(color=discord.Color.green())
         simple_embed.description = f"User ID: {ctx.author.id}\n"
-        simple_embed.description += f"Nama: {ctx.author}"
+        simple_embed.description += f"Nama: {ctx.author}\n"
         timestamp = int(round(message.created_at.timestamp()))
         simple_embed.description += f"Minta pada: <t:{timestamp}:F>"
+        simple_embed.description += f"\n\n{find_image.proxy_url}"
+        simple_embed.set_image(url=find_image.url)
         await channel_target.send(
             content="Permintaan baru untuk role Alumni\n"
             "Jika gambar benar silakan gunakan `p/berialumni USER_ID`\n"
