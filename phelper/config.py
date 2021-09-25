@@ -44,12 +44,35 @@ class RedisConfig(NamedTuple):
         }
 
 
+class PotiaLavalinkSpotifyNode(NamedTuple):
+    id: str
+    secret: str
+
+    @classmethod
+    def parse_config(cls, config: BotConfig):
+        id = config.get("id", None)
+        if id is None:
+            raise ConfigParseError(
+                "lavalink_nodes.X.spotify.id", "Spotify ID dibutuhkan untuk fitur Spotify!"
+            )
+        secret = config.get("secret", None)
+        if secret is None:
+            raise ConfigParseError(
+                "lavalink_nodes.X.spotify.secret", "Spotify Secret dibutuhkan untuk fitur Spotify!"
+            )
+        return cls(id, secret)
+
+    def serialize(self):
+        return {"id": self.id, "secret": self.secret}
+
+
 class PotiaLavalinkNodes(NamedTuple):
     host: str
     port: int
     password: str
     identifier: str
     region: VoiceRegion
+    spotify: Optional[PotiaLavalinkSpotifyNode]
 
     @property
     def rest_uri(self):
@@ -73,16 +96,21 @@ class PotiaLavalinkNodes(NamedTuple):
             region = VoiceRegion.us_west
         else:
             region = VoiceRegion(region.replace("_", "-"))
-        return cls(host, port, password, identifier, region)
+        spotify_node = config.get("spotify", None)
+        if spotify_node is not None:
+            spotify_node = PotiaLavalinkSpotifyNode.parse_config(spotify_node)
+        return cls(host, port, password, identifier, region, spotify_node)
 
     def serialize(self):
-        return {
+        base = {
             "host": self.host,
             "port": self.port,
             "password": self.password,
             "identifier": self.identifier,
             "region": self.region.value,
         }
+        if self.spotify:
+            base["spotify"] = self.spotify.serialize()
 
 
 class PotiaArgParsed(NamedTuple):
