@@ -9,6 +9,7 @@ from typing import AnyStr, Optional, TypeVar, Union
 
 import aiohttp
 import discord
+import wavelink
 from discord.ext import commands
 
 from .config import PotiaBotConfig
@@ -38,6 +39,8 @@ class PotiaBot(commands.Bot):
         self.config = bot_config
         self.prefix = bot_config.default_prefix
         self.fcwd = base_path
+
+        self.wavelink: wavelink.Client
 
         self._modlog_channel: discord.TextChannel = None
         self.redis: RedisBridge = None

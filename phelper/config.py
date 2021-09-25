@@ -1,6 +1,9 @@
 import argparse
 from typing import Dict, List, NamedTuple, Optional, Union
 
+import uuid
+from discord.enums import VoiceRegion
+
 BotConfig = Dict[str, Union[str, int, bool, Dict[str, Union[str, int, bool]]]]
 
 
@@ -41,6 +44,47 @@ class RedisConfig(NamedTuple):
         }
 
 
+class PotiaLavalinkNodes(NamedTuple):
+    host: str
+    port: int
+    password: str
+    identifier: str
+    region: VoiceRegion
+
+    @property
+    def rest_uri(self):
+        return f"http://{self.host}:{self.port}"
+
+    @classmethod
+    def parse_config(cls, config: BotConfig):
+        host = config.get("host", None)
+        if host is None:
+            raise ConfigParseError(
+                "lavalink.host", "Lavalink dibutuhkan untuk berbagai macam fitur naoTimes!"
+            )
+        port = config.get("port", 2333)
+        password = config.get("password", None)
+        identifier = config.get("identifier", None)
+        if identifier is None:
+            idv4 = str(uuid.uuid4())
+            identifier = f"potia-lava-{idv4}"
+        region = config.get("region", None)
+        if region is None:
+            region = VoiceRegion.us_west
+        else:
+            region = VoiceRegion(region.replace("_", "-"))
+        return cls(host, port, password, identifier, region)
+
+    def serialize(self):
+        return {
+            "host": self.host,
+            "port": self.port,
+            "password": self.password,
+            "identifier": self.identifier,
+            "region": self.region.value,
+        }
+
+
 class PotiaArgParsed(NamedTuple):
     cogs_skip: List[str] = []
 
@@ -61,6 +105,7 @@ class PotiaBotConfig(NamedTuple):
     init_config: PotiaArgParsed
     modlog_channel: Optional[int]
     twitter_key: Optional[str]
+    lavanodes: List[PotiaLavalinkNodes]
 
     @classmethod
     def parse_config(cls, config: BotConfig, parsed_ns: argparse.Namespace) -> "PotiaBotConfig":
@@ -71,15 +116,13 @@ class PotiaBotConfig(NamedTuple):
         redis_config = RedisConfig.parse_config(config.get("redisdb", {}))
         modlog_channel = config.get("modlog_channel", None)
         twitter_key = config.get("twitter", None)
+        lavalinks_nodes = []
+        for node in config.get("lavalink_nodes", []):
+            lavalinks_nodes.append(PotiaLavalinkNodes.parse_config(node))
         argparsed = PotiaArgParsed.parse_argparse(parsed_ns)
 
         return cls(
-            token,
-            default_prefix,
-            redis_config,
-            argparsed,
-            modlog_channel,
-            twitter_key,
+            token, default_prefix, redis_config, argparsed, modlog_channel, twitter_key, lavalinks_nodes
         )
 
     def serialize(self):
@@ -89,4 +132,5 @@ class PotiaBotConfig(NamedTuple):
             "redisdb": self.redis.serialize(),
             "modlog_channel": self.modlog_channel,
             "twitter": self.twitter_key,
+            "lavalink_nodes": [node.serialize() for node in self.lavanodes],
         }
