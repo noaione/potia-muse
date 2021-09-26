@@ -51,6 +51,7 @@ class ActiveChat:
                 all_datas.append(f"AI: {content.content}")
         all_datas.append(f"Human: {new_content}")
         self._chat_contents.append(Conversation(new_content, Author.USER))
+        all_datas.append("AI:")
         return "\n".join(all_datas)
 
     async def send(self, content: str):
