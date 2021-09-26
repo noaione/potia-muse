@@ -98,7 +98,8 @@ class CurieAIChat(commands.Cog):
             f"{ctx.author.mention} memulai konversasi dengan AI...\n"
             "Ketik `stop` jika sudah selesai!\n"
             "Ketik `lanjut` untuk membuat AI meneruskan teks sebelumnya!\n"
-            "Jika tidak ada konversasi dalam 1 menit, chat akan berhenti otomatis."
+            "Jika tidak ada konversasi dalam 1 menit, chat akan berhenti otomatis.\n\n"
+            "Dimohon gunakan bahasa Inggris."
         )
 
         channel = ctx.channel
