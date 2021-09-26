@@ -9,6 +9,7 @@ import discord
 from discord.ext import commands
 from phelper.bot import PotiaBot
 from phelper.utils import complex_walk
+import json
 
 
 class Author(Enum):
@@ -38,6 +39,7 @@ class ActiveChat:
         self.user = user
         self.channel = channel
         self.session = session
+        self.logger = logging.getLogger(f"AIChat.{user.id}")
         self._chat_contents: List[Conversation] = []
 
     def _create_prompt(self, new_content: str):
@@ -58,12 +60,13 @@ class ActiveChat:
         ALL_CONTENTS["prompt"] = prompts
         ALL_CONTENTS["stop"] = ["\n", " Human:", " AI:"]
 
+        self.logger.debug(f"Requesting with {len(prompts)} promps: {json.dumps(prompts)}")
         async with self.session.post(
             "https://api.openai.com/v1/engines/curie/completions", json=ALL_CONTENTS
         ) as resp:
             data = await resp.json()
-            first_content = complex_walk(data, "choices.0.text")
-            conversation = Conversation(first_content, Author.BOT)
+            first_content: str = complex_walk(data, "choices.0.text")
+            conversation = Conversation(first_content.strip(), Author.BOT)
             self._chat_contents.append(conversation)
             return conversation
 
@@ -105,6 +108,7 @@ class CurieAIChat(commands.Cog):
         stop_reason = None
         while True:
             async with channel.typing():
+                self.logger.info("Fetching responses...")
                 ai_response = await ai_chat.send(new_prompt)
                 await ctx.send(ai_response.content, reference=last_known_msg)
 
@@ -112,10 +116,9 @@ class CurieAIChat(commands.Cog):
                 return msg.author == author and msg.channel == channel
 
             res: discord.Message
-            user: discord.Member
 
             try:
-                res, user = await self.bot.wait_for("message", check=check, timeout=60)
+                res = await self.bot.wait_for("message", check=check, timeout=60)
             except asyncio.TimeoutError:
                 stop_reason = "Timeout"
                 break
