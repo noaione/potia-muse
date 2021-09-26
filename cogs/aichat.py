@@ -118,7 +118,10 @@ class CurieAIChat(commands.Cog):
             async with channel.typing():
                 self.logger.info("Fetching responses...")
                 ai_response = await ai_chat.send(new_prompt)
-                await ctx.send(ai_response.content, reference=last_known_msg)
+                if not ai_response.content:
+                    await ctx.send("**Pesan dari Potia**: *AI tidak dapat menjawab pesan anda.*")
+                else:
+                    await ctx.send(ai_response.content, reference=last_known_msg)
 
             def check(msg: discord.Message):
                 return msg.author == author and msg.channel == channel
