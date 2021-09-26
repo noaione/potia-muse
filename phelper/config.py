@@ -134,6 +134,7 @@ class PotiaBotConfig(NamedTuple):
     modlog_channel: Optional[int]
     twitter_key: Optional[str]
     lavanodes: List[PotiaLavalinkNodes]
+    openai_token: Optional[str]
 
     @classmethod
     def parse_config(cls, config: BotConfig, parsed_ns: argparse.Namespace) -> "PotiaBotConfig":
@@ -147,10 +148,18 @@ class PotiaBotConfig(NamedTuple):
         lavalinks_nodes = []
         for node in config.get("lavalink_nodes", []):
             lavalinks_nodes.append(PotiaLavalinkNodes.parse_config(node))
+        openai_token = config.get("openai_token", None)
         argparsed = PotiaArgParsed.parse_argparse(parsed_ns)
 
         return cls(
-            token, default_prefix, redis_config, argparsed, modlog_channel, twitter_key, lavalinks_nodes
+            token,
+            default_prefix,
+            redis_config,
+            argparsed,
+            modlog_channel,
+            twitter_key,
+            lavalinks_nodes,
+            openai_token,
         )
 
     def serialize(self):
@@ -161,4 +170,5 @@ class PotiaBotConfig(NamedTuple):
             "modlog_channel": self.modlog_channel,
             "twitter": self.twitter_key,
             "lavalink_nodes": [node.serialize() for node in self.lavanodes],
+            "openai_token": str_or_none(self.openai_token),
         }
