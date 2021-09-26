@@ -120,10 +120,12 @@ class CurieAIChat(commands.Cog):
                 stop_reason = "Timeout"
                 break
 
-            if res.content == "stop":
+            if res.clean_content.lower() == "stop":
                 stop_reason = "User sendiri"
                 break
 
             last_known_msg = res
+            new_prompt = res.clean_content
 
+        await session.close()
         await ctx.send(f"Konversasi selesai, konversasi dihentikan karena {stop_reason}")
