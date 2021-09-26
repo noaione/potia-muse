@@ -129,3 +129,7 @@ class CurieAIChat(commands.Cog):
 
         await session.close()
         await ctx.send(f"Konversasi selesai, konversasi dihentikan karena {stop_reason}")
+
+
+def setup(bot: PotiaBot):
+    bot.add_cog(CurieAIChat(bot))
