@@ -78,6 +78,14 @@ class UserWelcomer(commands.Cog):
         else:
             await ctx.send(content=welcome_msg)
 
+    @commands.command()
+    @commands.guild_only()
+    @commands.is_owner()
+    async def wscreen(self, ctx: commands.Context):
+        guild = self.bot.get_guild(864004899783180308)
+        welcome_screen = await guild.welcome_screen()
+        print(welcome_screen)
+
 
 def setup(bot: PotiaBot):
     bot.add_cog(UserWelcomer(bot))
