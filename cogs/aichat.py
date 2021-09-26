@@ -23,7 +23,7 @@ class Conversation:
     author: Author
 
 
-INITIATION_TEXT = """The following is a conversation between an AI assistant and a human. The AI is smart, helpful, creative, clever, friendly, and sometimes loves to joke."""  # noqa
+INITIATION_TEXT = """The following is a conversation between an AI and a human. The AI is smart, helpful, creative, clever, friendly, and sometimes loves to joke."""  # noqa
 
 AI_CONFIGURATION = {
     "temperature": 0.9,
