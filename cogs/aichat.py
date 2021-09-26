@@ -42,33 +42,38 @@ class ActiveChat:
         self.logger = logging.getLogger(f"AIChat.{user.id}")
         self._chat_contents: List[Conversation] = []
 
-    def _create_prompt(self, new_content: str):
+    def _create_prompt(self, new_content: str = None):
         all_datas = [INITIATION_TEXT]
         for content in self._chat_contents:
             if content.author == Author.USER:
                 all_datas.append(f"Human: {content.content}")
             elif content.author == Author.BOT:
                 all_datas.append(f"AI: {content.content}")
-        all_datas.append(f"Human: {new_content}")
-        self._chat_contents.append(Conversation(new_content, Author.USER))
-        all_datas.append("AI:")
+        if new_content is not None:
+            all_datas.append(f"Human: {new_content}")
+            self._chat_contents.append(Conversation(new_content, Author.USER))
+            all_datas.append("AI:")
         return "\n".join(all_datas)
 
-    async def send(self, content: str):
+    async def send(self, content: str = None):
         prompts = self._create_prompt(content)
 
         ALL_CONTENTS = AI_CONFIGURATION.copy()
         ALL_CONTENTS["prompt"] = prompts
         ALL_CONTENTS["stop"] = ["\n", " Human:", " AI:"]
 
-        self.logger.debug(f"Requesting with {len(prompts)} promps: {json.dumps(prompts)}")
+        self.logger.debug(f"Requesting with promps: {json.dumps(prompts)}")
         async with self.session.post(
             "https://api.openai.com/v1/engines/curie/completions", json=ALL_CONTENTS
         ) as resp:
             data = await resp.json()
             first_content: str = complex_walk(data, "choices.0.text")
             conversation = Conversation(first_content.strip(), Author.BOT)
-            self._chat_contents.append(conversation)
+            if content is None:
+                # Append text to previous prompt.
+                self._chat_contents[-1].content += f" {conversation.content}"
+            else:
+                self._chat_contents.append(conversation)
             return conversation
 
 
@@ -92,6 +97,7 @@ class CurieAIChat(commands.Cog):
         await ctx.send(
             f"{ctx.author.mention} memulai konversasi dengan AI...\n"
             "Ketik `stop` jika sudah selesai!\n"
+            "Ketik `lanjut` untuk membuat AI meneruskan teks sebelumnya!\n"
             "Jika tidak ada konversasi dalam 1 menit, chat akan berhenti otomatis."
         )
 
@@ -124,12 +130,18 @@ class CurieAIChat(commands.Cog):
                 stop_reason = "Timeout"
                 break
 
-            if res.clean_content.lower() == "stop":
+            content = res.clean_content
+
+            if content.lower() == "stop":
                 stop_reason = "User sendiri"
                 break
 
+            if content.lower() in ["lanjut", "lanjutkan", "continue"]:
+                self.logger.info("User aksed the AI to continue, continuing without new prompt for user.")
+                new_prompt = None
+            else:
+                new_prompt = content
             last_known_msg = res
-            new_prompt = res.clean_content
 
         await session.close()
         await ctx.send(f"Konversasi selesai, konversasi dihentikan karena {stop_reason}")
