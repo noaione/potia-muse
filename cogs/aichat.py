@@ -29,7 +29,7 @@ AI_CONFIGURATION = {
     "temperature": 0.9,
     "max_tokens": 150,
     "top_p": 1,
-    "frequency_penalty": 0.0,
+    "frequency_penalty": 0.4,
     "presence_penalty": 0.6,
 }
 
@@ -64,7 +64,7 @@ class ActiveChat:
 
         self.logger.debug(f"Requesting with promps: {json.dumps(prompts)}")
         async with self.session.post(
-            "https://api.openai.com/v1/engines/curie/completions", json=ALL_CONTENTS
+            "https://api.openai.com/v1/engines/davinci/completions", json=ALL_CONTENTS
         ) as resp:
             data = await resp.json()
             first_content: str = complex_walk(data, "choices.0.text")
@@ -77,7 +77,7 @@ class ActiveChat:
             return conversation
 
 
-class CurieAIChat(commands.Cog):
+class DavinciAIChat(commands.Cog):
     """A GPT-3 powered chat engine using Curie model"""
 
     def __init__(self, bot: PotiaBot):
@@ -152,4 +152,4 @@ class CurieAIChat(commands.Cog):
 
 
 def setup(bot: PotiaBot):
-    bot.add_cog(CurieAIChat(bot))
+    bot.add_cog(DavinciAIChat(bot))
