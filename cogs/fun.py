@@ -12,6 +12,10 @@ class PotiaFunStuff(commands.Cog):
             return await ctx.send("Mohon berikan pertanyaan untuk pak Ustad")
 
         await ctx.send(f"Pak <@579438382162378752>, ada yang mau tanya, nih.\n{pertanyaan}")
+        try:
+            await ctx.message.delete()
+        except Exception:
+            pass
 
 
 def setup(bot: PotiaBot):
