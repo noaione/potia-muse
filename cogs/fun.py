@@ -11,7 +11,7 @@ class PotiaFunStuff(commands.Cog):
         if not pertanyaan:
             return await ctx.send("Mohon berikan pertanyaan untuk pak Ustad")
 
-        await ctx.send(f"Pak ustad <@579438382162378752> mau nanya:\n{pertanyaan}")
+        await ctx.send(f"Pak <@579438382162378752>, ada yang mau tanya, nih.\n{pertanyaan}")
 
 
 def setup(bot: PotiaBot):
