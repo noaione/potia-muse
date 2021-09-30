@@ -8,10 +8,11 @@ from phelper.bot import PotiaBot
 
 
 class RaffleEntry:
-    def __init__(self, id: int, name: str, number: Optional[int] = None):
+    def __init__(self, id: int, name: str, number: Optional[int] = None, msg_ref: Optional[int] = None):
         self._id = id
         self._name = name
         self._number = number
+        self._msg_ref = msg_ref
 
     def __eq__(self, other: Union[int, "RaffleEntry"]):
         if isinstance(other, int):
@@ -42,12 +43,18 @@ class RaffleEntry:
 
         self._number = number
 
+    def set_reference(self, reference: Union[int, discord.MessageReference]):
+        if isinstance(reference, discord.MessageReference):
+            self._msg_ref = reference.message_id
+        elif isinstance(reference, int):
+            self._msg_ref = reference
+
     @classmethod
     def from_dict(cls, data: dict):
-        return cls(data["id"], data["name"], data["number"])
+        return cls(data["id"], data["name"], data["number"], data.get("msg_ref", None))
 
     def to_dict(self):
-        return {"id": self.id, "name": self.name, "number": self.number}
+        return {"id": self.id, "name": self.name, "number": self.number, "msg_ref": self._msg_ref}
 
 
 class RaffleMeta:
@@ -166,6 +173,12 @@ class Raffle:
         if entry not in self._entries:
             return
         self._entries.remove(entry)
+
+    def find_reference(self, ref: int):
+        for entry in self._entries:
+            if entry._msg_ref == ref:
+                return entry
+        return None
 
     @property
     def raffled(self):
@@ -311,6 +324,32 @@ class RaffleSystem(commands.Cog):
         self._ONGOING_RAFFLES[str(raffle.id)] = raffle
         await self.bot.redis.set(f"potiaraffle_{raffle.id}_{raffle.meta.id}", raffle.to_dict())
         await ctx.send(f"Undian untuk **{item}** dimulai, silakan ketik angka yang anda inginkan")
+
+    @commands.command(name="hapusentri")
+    @commands.has_guild_permissions(administrator=True)
+    async def _raffle_remove_entry(self, ctx: commands.Context, *, alasan: str = None):
+        reference = ctx.message.reference
+        if reference is None:
+            return await ctx.send("Mohon reply ke nomor yang ingin dibatalkan")
+        channel = ctx.channel
+        raffle = self._ONGOING_RAFFLES.get(str(channel.id))
+        user_ref = reference.message_id
+        if raffle is None:
+            return await ctx.send("Tidak ada undian yang sedang jalan di kanal ini!")
+        if raffle.raffled:
+            return await ctx.send("Undian sudah selesai, tidak dapat dibatalkan")
+        reference = await raffle.find_reference(user_ref)
+        if reference is None:
+            return await ctx.send("User tersebut tidak join undian ini?")
+        await raffle.remove_entry(reference)
+        self._ONGOING_RAFFLES[str(channel.id)] = raffle
+
+        send_msg = "Nomor undian anda dihapus oleh administrator, mohon ulangi!"
+        if alasan:
+            send_msg += f"\nAlasan: {alasan}"
+
+        await self.bot.redis.set(f"potiaraffle_{raffle.id}_{raffle.meta.id}", raffle.to_dict())
+        await ctx.send(send_msg, reference=reference)
 
     @commands.command(name="undi")
     @commands.guild_only()
