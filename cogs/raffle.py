@@ -277,6 +277,8 @@ class RaffleSystem(commands.Cog):
         if raffle.host.id == member_id:
             return
         content = message.clean_content
+        if content.startswith("p/"):
+            return
         if not content.isdigit():
             if member_id not in raffle:
                 await channel.send("Mohon berikan angka undian yang benar!", reference=message)
