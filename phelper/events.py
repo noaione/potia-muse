@@ -57,31 +57,40 @@ class EventManager:
         self._loop = loop or asyncio.get_event_loop()
         self._blocking = False
 
-        self._waiters = asyncio.Queue()
-        self._taskers = asyncio.Task(self._internal_loop(), loop=self._loop)
+    async def _run_wrap_event(self, coro: EventFunc, *args: Any, **kwargs: Any) -> None:
+        try:
+            await maybe_asyncute(coro, *args, **kwargs)
+        except asyncio.CancelledError:
+            pass
+        except Exception as e:
+            self.logger.exception("An exception occured while trying to execute callback:", exc_info=e)
 
-    async def _internal_loop(self):
-        self.logger.info("Starting internal event manager task...")
-        while True:
-            try:
-                callback, kwargs = await self._waiters.get()
-                self.logger.info("New event received, calling callback...")
-                try:
-                    # Wait for 20s before cancelling
-                    await asyncio.wait_for(maybe_asyncute(callback, **kwargs), timeout=20.0, loop=self._loop)
-                except asyncio.TimeoutError:
-                    self.logger.warning("Callback timed out occured, will not continue!")
-                except Exception as e:
-                    self.logger.error("An exception occured while trying to execute callback:")
-                    self.logger.exception(e)
-                self._waiters.task_done()
-            except asyncio.CancelledError:
-                break
+    def _internal_scheduler(self, event_name: str, coro: EventFunc, *args, **kwargs):
+        wrapped = self._run_wrap_event(coro, *args, **kwargs)
+        return self._loop.create_task(wrapped, name=f"naoTimesEvent: {event_name}")
 
     async def close(self):
         self._blocking = True
-        await self._waiters.join()
-        self._taskers.cancel()
+        task_retriever = asyncio.all_tasks
+        tasks = {
+            t
+            for t in task_retriever(loop=self._loop)
+            if not t.done() and t.get_name().startswith("naoTimesEvent:")
+        }
+        if not tasks:
+            return
+        self.logger.info("Trying to cleanup %d event tasks...", len(tasks))
+        for task in tasks:
+            task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+        self.logger.info("All event tasks is finished...")
+        for task in tasks:
+            if task.cancelled():
+                continue
+            if task.exception() is not None:
+                self.logger.error(
+                    "An exception occured while trying to cancel event task:", exc_info=task.exception()
+                )
 
     def __extract_event(self, event: str):
         event = event.lower()
@@ -163,13 +172,12 @@ class EventManager:
                 valid, real_kwargs = self.__create_kwarguments(callback, *args, **kwargs)
                 if not valid:
                     continue
-                self._waiters.put_nowait([callback, real_kwargs])
+                self._internal_scheduler(event, callback, *[], **real_kwargs)
         else:
             self.logger.info(f"Trying to dispatch event: {event}, callback: {callbacks}")
             valid, real_kwargs = self.__create_kwarguments(callbacks, *args, **kwargs)
             if valid:
-                self.logger.info(f"Dispatching {event} to callback...")
-                self._waiters.put_nowait([callbacks, real_kwargs])
+                self._internal_scheduler(event, callbacks, *[], **real_kwargs)
 
     @staticmethod
     def __extract_fn_name(fn: EventFunc):
