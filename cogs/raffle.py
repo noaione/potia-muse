@@ -302,6 +302,7 @@ class RaffleSystem(commands.Cog):
 
         entry = RaffleEntry.from_user(member)
         entry.set_number(int(content))
+        entry.set_reference(message.id)
         if raffle.number_exist(entry):
             return await channel.send("Nomor tersebut sudah diambil orang lain!", reference=message)
 
