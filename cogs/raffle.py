@@ -350,7 +350,8 @@ class RaffleSystem(commands.Cog):
             send_msg += f"\nAlasan: {alasan}"
 
         await self.bot.redis.set(f"potiaraffle_{raffle.id}_{raffle.meta.id}", raffle.to_dict())
-        await ctx.send(send_msg, reference=reference)
+        reference_msg = channel.get_partial_message(reference._msg_ref)
+        await ctx.send(send_msg, reference=reference_msg)
 
     @commands.command(name="undi")
     @commands.guild_only()
