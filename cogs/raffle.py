@@ -338,10 +338,10 @@ class RaffleSystem(commands.Cog):
             return await ctx.send("Tidak ada undian yang sedang jalan di kanal ini!")
         if raffle.raffled:
             return await ctx.send("Undian sudah selesai, tidak dapat dibatalkan")
-        reference = await raffle.find_reference(user_ref)
+        reference = raffle.find_reference(user_ref)
         if reference is None:
             return await ctx.send("User tersebut tidak join undian ini?")
-        await raffle.remove_entry(reference)
+        raffle.remove_entry(reference)
         self._ONGOING_RAFFLES[str(channel.id)] = raffle
 
         send_msg = "Nomor undian anda dihapus oleh administrator, mohon ulangi!"
