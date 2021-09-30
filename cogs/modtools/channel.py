@@ -43,6 +43,37 @@ class ChannelControl(commands.Cog):
                 self.logger.warning(f"Failed to lock down for role {role.name}, HTTP exception occured!")
         return is_failure
 
+    @commands.command(name="jointhread", aliases=["gabungthread"])
+    @commands.guild_only()
+    async def _modtools_jointhread(self, ctx: commands.Context, thread: commands.ThreadConverter = None):
+        self.logger.info("Trying to join threads...")
+        thread: discord.Thread = thread
+        if thread is None:
+            return await ctx.send("Mohon berikan thread yang valid!")
+        if not isinstance(thread, discord.Thread):
+            return await ctx.send("Kanal yang diberikan bukanlah thread yang valid!")
+
+        if thread.me is not None:
+            return await ctx.send("Sudah bergabung ke kanal tersebut!")
+
+        has_perms = False
+        user_perms = ctx.channel.permissions_for(ctx.author)
+        if user_perms.manage_messages:
+            has_perms = True
+        if thread.owner == ctx.author:
+            has_perms = True
+        if not has_perms:
+            return await ctx.send(
+                "Hanya thread starter dan moderator dengan permission "
+                "`Manage Messages` yang bisa menginvite bot ke thread!"
+            )
+
+        try:
+            await thread.join()
+        except discord.Forbidden:
+            return await ctx.send("Bot tidak dapat bergabung ke thread tersebut!", reference=ctx.message)
+        await ctx.send(f"Sukses bergabung ke thread: {thread.mention}")
+
     @commands.command(aliases=["lock"])
     @commands.guild_only()
     @commands.has_guild_permissions(manage_channels=True)
