@@ -214,14 +214,14 @@ class PotiaMusik(commands.Cog):
             elif "soundcloud" in query:
                 raise UnsupportedURLType
             elif "music.youtube" in query:
-                return_first = "/playlist/" not in query
+                return_first = "/playlist" not in query
                 results: YouTubeMusicTrack = await wavelink.YouTubeMusicTrack.search(
                     query,
                     return_first=return_first,
                 )
                 return results, False
             else:
-                return_first = "/playlist/" not in query
+                return_first = "/playlist" not in query
                 results: YouTubeTrack = await wavelink.YouTubeTrack.search(
                     query,
                     return_first=return_first,
