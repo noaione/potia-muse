@@ -292,6 +292,7 @@ class PotiaMusik(commands.Cog):
 
         self.logger.info(f"Trying to process: {query}")
         try:
+            await ctx.send("Mencoba memuat lagu...", reference=ctx.message)
             all_results, should_pick = await self.search_track(query)
         except UnsupportedURLType:
             return await ctx.send("URL yang anda berikan tidak kami dukung!", reference=ctx.message)
@@ -319,8 +320,7 @@ class PotiaMusik(commands.Cog):
                 self.logger.info(f"Loaded {len(all_results)} tracks")
 
                 await ctx.send(
-                    f"Menambahkan playlist ke pemutar musik! Total ada: {len(all_results)} musik",
-                    reference=ctx.message,
+                    content=f"Menambahkan playlist ke pemutar musik! Total ada: {len(all_results)} musik",
                 )
         else:
             await self.enqueue_single(ctx, all_results)
