@@ -20,17 +20,31 @@ class UnsupportedURLType(Exception):
     pass
 
 
+def parse_playlist(data: dict):
+    tracks = data["tracks"]
+    return tracks
+
+
 class YoutubeDirectLinkTrack(SearchableTrack):
     @classmethod
     async def search(
-        cls,
-        query: str,
-        *,
-        node: wavelink.Node = MISSING,
-        return_first: bool = False
+        cls, query: str, *, node: wavelink.Node = MISSING, return_first: bool = False
     ) -> Union[wavelink.Track, List[wavelink.Track]]:
         if node is MISSING:
             node = wavelink.NodePool.get_node()
+
+        is_playlist = False
+        if "/playlist" in query:
+            is_playlist = True
+
+        if is_playlist:
+            playlists_data = []
+            playlist_append = lambda x: playlists_data.extend(parse_playlist(x))  # noqa: E731
+            await node.get_playlist(playlist_append, query)
+            parsed_tracks = [cls(track["track"], track["info"]) for track in playlists_data]
+            if return_first:
+                return parsed_tracks[0]
+            return parsed_tracks
 
         tracks = await node.get_tracks(cls, query)
         if return_first:
@@ -246,8 +260,8 @@ class PotiaMusik(commands.Cog):
     async def enqueue_single(self, ctx: commands.Context, track: wavelink.Track):
         """Enqueue a single track"""
         # Bind requester to track
-        track = PotiaTrackQueued(track, ctx.author, ctx.channel)
-        await self._start_queue(ctx.guild, track)
+        track_queue = PotiaTrackQueued(track, ctx.author, ctx.channel)
+        await self._start_queue(ctx.guild, track_queue)
         queue = self._get_queue(ctx.guild)
         self.logger.info(f"Enqueueing: {track.title} by {track.author}")
         await ctx.send(
@@ -261,7 +275,7 @@ class PotiaMusik(commands.Cog):
         messages = []
         messages.append("**Mohon ketik angka yang ingin anda tambahkan ke Bot!**")
         max_tracks = all_tracks[:7]
-        for ix, track in max_tracks:
+        for ix, track in enumerate(max_tracks, 1):
             messages.append(f"**{ix}**. `{track.title}` [{format_duration(track.duration)}]")
 
         await ctx.send("\n".join(messages), reference=ctx.message)
@@ -367,7 +381,7 @@ class PotiaMusik(commands.Cog):
         await vc.stop()
         await ctx.message.add_reaction("👍")
 
-    @musik.command(name="disconnect", aliases=["dc"])
+    @musik.command(name="disconnect", aliases=["dc", "leave"])
     async def musik_dc(self, ctx: commands.Context):
         if not ctx.voice_client:
             return await ctx.send("Bot belum sama sekali join VC!")
@@ -455,14 +469,16 @@ class PotiaMusik(commands.Cog):
     ):
         embed = discord.Embed(title=f"Daftar Putar ({current + 1}/{maximum})", colour=discord.Color.random())
 
+        starting_track = ((current + 1) * 5) - 5
+
         description_fmt = []
-        for n, track in enumerate(dataset, 1):
+        for n, track in enumerate(dataset, starting_track + 1):
             description_fmt.append(
                 f"**{n}**. `{track.track.title}` [{format_duration(track.track.duration)}] (Diminta oleh: `{track.requester}`)"  # noqa: E501
             )
 
         embed.description = "\n".join(description_fmt)
-        embed.set_footer(text=f"Tersisa {len(real_total)} lagu")
+        embed.set_footer(text=f"Tersisa {real_total} lagu")
         return embed
 
     @musik.group(name="queue", aliases=["q"])
@@ -511,9 +527,11 @@ class PotiaMusik(commands.Cog):
 
         if position > queue.queue.qsize():
             return await ctx.send("Angka tidak boleh lebih besar dari jumlah lagu di daftar putar!")
+        elif position < 1:
+            return await ctx.send("Angka harus lebih dari satu!")
 
         position -= 1
-        track: PotiaTrackQueued = queue.queue.queue[position - 1]
+        track: PotiaTrackQueued = queue.queue._queue[position]
         if track.requester == ctx.author:
             success = self._remove_track(ctx.guild, queue, position)
         elif queue.initiator == ctx.author:
@@ -537,13 +555,13 @@ class PotiaMusik(commands.Cog):
         author: discord.Member = ctx.author
 
         if self._check_perms(author.guild_permissions):
-            await self._flush_queue(ctx.guild)
-            await ctx.send("Daftar putar dibersihkan oleh Admin atau Moderator")
+            self._flush_queue(ctx.guild)
+            return await ctx.send("Daftar putar dibersihkan oleh Admin atau Moderator")
 
         queue = self._get_queue(ctx.guild)
         if queue.initiator == author:
-            await self._flush_queue(ctx.guild)
-            await ctx.send("Daftar putar dibersihkan oleh DJ utama!")
+            self._flush_queue(ctx.guild)
+            return await ctx.send("Daftar putar dibersihkan oleh DJ utama!")
 
         await ctx.send(
             "Anda tidak memiliki hak untuk membersihkan daftar putar (Hanya Admin atau DJ pertama yang bisa)"
@@ -554,12 +572,20 @@ class PotiaMusik(commands.Cog):
         if not ctx.voice_client:
             return await ctx.send("Bot belum sama sekali join VC!")
 
-        if volume < 0 or volume > 100:
-            return await ctx.send("Volume harus antara 0 - 100!")
+        if volume < 1 or volume > 100:
+            return await ctx.send("Volume harus antara 1-100!")
 
+        author = ctx.author
+        queue = self._get_queue(ctx.guild)
         vc: wavelink.Player = ctx.voice_client
-        await vc.set_volume(volume)
-        await ctx.send(f"Volume diubah menjadi {volume}%")
+        if queue.initiator == author:
+            await vc.set_volume(volume)
+            return await ctx.send(f"Volume diubah menjadi {volume}%", reference=ctx.message)
+        if self._check_perms(author.guild_permissions):
+            await vc.volume(volume)
+            return await ctx.send(f"Volume diubah menjadi {volume}%", reference=ctx.message)
+
+        await ctx.send("Hanya DJ utama atau Admin yang dapat mengubah volume!")
 
 
 def setup(bot: PotiaBot):
