@@ -55,6 +55,7 @@ class DiscordPaginatorUI(DisUI.View, Generic[IT]):
         self.message: Optional[discord.Message] = None
 
         self.ctx: Context = ctx
+        self._author = ctx.author
         self._default_gen: Optional[PaginatorGenerator[IT]] = None
         self._pages: List[IT] = items
         self._page = 0
@@ -175,7 +176,11 @@ class DiscordPaginatorUI(DisUI.View, Generic[IT]):
             final_kwargs["embed"] = embed
         return final_kwargs
 
-    async def __generate_view(self, message: discord.Message):
+    async def __generate_view(self, message: discord.Message, user: Optional[discord.User]):
+        if user is not None:
+            if user.id != self._author.id:
+                self.logger.warning("User is not the same as author, will return current view")
+                return {"view": self}
         callback = self._default_gen
         can_data, can_pos, can_msg = self._check_function(callback)
         full_argument = []
@@ -208,7 +213,7 @@ class DiscordPaginatorUI(DisUI.View, Generic[IT]):
     async def first_page(self, button: DisUI.Button, interaction: Interaction):
         self._page = 0
         self.update_view()
-        generated = await self.__generate_view(interaction.message)
+        generated = await self.__generate_view(interaction.message, interaction.user)
         await interaction.response.edit_message(**generated)
 
     @DisUI.button(label="Sebelumnya", emoji="◀")
@@ -217,7 +222,7 @@ class DiscordPaginatorUI(DisUI.View, Generic[IT]):
         if self._page < 0:
             self._page = 0
         self.update_view()
-        generated = await self.__generate_view(interaction.message)
+        generated = await self.__generate_view(interaction.message, interaction.user)
         await interaction.response.edit_message(**generated)
 
     @DisUI.button(label="Halaman 1/1", style=discord.ButtonStyle.primary, disabled=True)
@@ -232,14 +237,14 @@ class DiscordPaginatorUI(DisUI.View, Generic[IT]):
         if self._page > len(self._pages) - 1:
             self._page = len(self._pages) - 1
         self.update_view()
-        generated = await self.__generate_view(interaction.message)
+        generated = await self.__generate_view(interaction.message, interaction.user)
         await interaction.response.edit_message(**generated)
 
     @DisUI.button(label="Akhir", emoji="⏭")
     async def last_page(self, button: DisUI.Button, interaction: Interaction):
         self._page = len(self._pages) - 1
         self.update_view()
-        generated = await self.__generate_view(interaction.message)
+        generated = await self.__generate_view(interaction.message, interaction.user)
         await interaction.response.edit_message(**generated)
 
     @DisUI.button(label="Tutup", emoji="✅", style=discord.ButtonStyle.danger)
