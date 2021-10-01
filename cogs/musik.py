@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from functools import partial
 from math import ceil
-from typing import Dict, List, MutableSet
+from typing import Dict, List, MutableSet, Union
 
 import discord
 import wavelink
@@ -12,11 +12,30 @@ from discord.ext import commands
 from phelper.bot import PotiaBot
 from phelper.paginator import DiscordPaginatorUI
 from wavelink.ext import spotify
-from wavelink.tracks import YouTubeMusicTrack, YouTubeTrack
+from wavelink.tracks import SearchableTrack
+from wavelink.utils import MISSING
 
 
 class UnsupportedURLType(Exception):
     pass
+
+
+class YoutubeDirectLinkTrack(SearchableTrack):
+    @classmethod
+    async def search(
+        cls,
+        query: str,
+        *,
+        node: wavelink.Node = MISSING,
+        return_first: bool = False
+    ) -> Union[wavelink.Track, List[wavelink.Track]]:
+        if node is MISSING:
+            node = wavelink.NodePool.get_node()
+
+        tracks = await node.get_tracks(cls, query)
+        if return_first:
+            return tracks[0]
+        return tracks
 
 
 class PotiaTrackRepeat(Enum):
@@ -180,7 +199,7 @@ class PotiaMusik(commands.Cog):
             description.append(f"**Durasi**: {format_duration(track.duration)}")
         else:
             description.append(f"**Durasi**: {format_duration(position)}/{format_duration(track.duration)}")
-        if isinstance(track, wavelink.YouTubeTrack):
+        if isinstance(track, (wavelink.YouTubeTrack, YoutubeDirectLinkTrack)):
             embed.set_image(url=f"https://i.ytimg.com/vi/{track.identifier}/hqdefault.jpg")
             description.append(f"\n[Link](https://youtu.be/{track.identifier})")
         embed.description = "\n".join(description)
@@ -213,16 +232,9 @@ class PotiaMusik(commands.Cog):
                 return results, False
             elif "soundcloud" in query:
                 raise UnsupportedURLType
-            elif "music.youtube" in query:
-                return_first = "/playlist" not in query
-                results: YouTubeMusicTrack = await wavelink.YouTubeMusicTrack.search(
-                    query,
-                    return_first=return_first,
-                )
-                return results, False
             else:
                 return_first = "/playlist" not in query
-                results: YouTubeTrack = await wavelink.YouTubeTrack.search(
+                results: YoutubeDirectLinkTrack = await YoutubeDirectLinkTrack.search(
                     query,
                     return_first=return_first,
                 )
