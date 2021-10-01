@@ -41,6 +41,18 @@ Jika mengalami kendala, kamu dapat menghubungi salah satu <@&864010032308027392>
 
 **DIMOHON UNTUK TIDAK MENGHUBUNGI <@&864010509366984724> SAMA SEKALI! (TERMASUK MEMINTA PERTEMANAN!)**
 """  # noqa: E501
+
+ALUMNI_INFO = """
+Role <@&890102605789937745> merupakan role permanen yang diberikan jika anda pernah join
+membership Muse Indonesia di YouTube.
+
+Role ini berfungsi sebagai role agar anda tetap bisa nimbrung dengan member lain tanpa harus perpanjang.
+
+Untuk mendapatkannya, pastikan anda telah mengikuti membership Muse Indonesia minimal `MuStar`, lalu
+anda cukup menggunakan perintah `p/alumni` di DM bot <@864027281923506176>.
+
+Contoh dapat anda lihat di sini:
+"""
 _MUSE_LOGO = "https://yt3.ggpht.com/ytc/AKedOLRKt9lXp2AafYyZvIIbciGQPq0j1c1bMrmaqAUs=s0-c-k-c0x00ffffff-no-rj"  # noqa: E501
 
 
