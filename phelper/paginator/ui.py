@@ -118,7 +118,7 @@ class DiscordPaginatorUI(DisUI.View, Generic[IT]):
             raise ValueError("No generator is available!")
         if self.message is None:
             self.logger.warning("Will generate starting message first!")
-            kwargs = await self.__generate_view(self.message)
+            kwargs = await self.__generate_view(self.message, None)
             real_kwargs = {}
             if "content" in kwargs:
                 real_kwargs["content"] = kwargs["content"]
@@ -228,7 +228,7 @@ class DiscordPaginatorUI(DisUI.View, Generic[IT]):
     @DisUI.button(label="Halaman 1/1", style=discord.ButtonStyle.primary, disabled=True)
     async def current_page(self, button: DisUI.Button, interaction: Interaction):
         self.update_view()
-        generated = await self.__generate_view(interaction.message)
+        generated = await self.__generate_view(interaction.message, interaction.user)
         await interaction.response.edit_message(**generated)
 
     @DisUI.button(label="Selanjutnya", emoji="▶")
