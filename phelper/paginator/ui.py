@@ -43,6 +43,10 @@ __all__ = ["DiscordPaginatorUI"]
 Number = TypeVar("Number", int, float)
 
 
+class PaginationFailed(Exception):
+    pass
+
+
 class DiscordPaginatorUI(DisUI.View, Generic[IT]):
     """
     A UI based paginator helper class.
@@ -113,9 +117,6 @@ class DiscordPaginatorUI(DisUI.View, Generic[IT]):
         if timeout is not None:
             self.timeout = timeout
         self.logger.info("Starting interaction...")
-        if not callable(self._default_gen):
-            self.logger.error("No generator attached!")
-            raise ValueError("No generator is available!")
         if self.message is None:
             self.logger.warning("Will generate starting message first!")
             kwargs = await self.__generate_view(self.message, None)
@@ -182,6 +183,12 @@ class DiscordPaginatorUI(DisUI.View, Generic[IT]):
                 self.logger.warning("User is not the same as author, will return current view")
                 return {"view": self}
         callback = self._default_gen
+        if callback is None:
+            gen_kwargs = self.__generate_message(self._pages[self._page])
+            if not gen_kwargs:
+                raise PaginationFailed
+            gen_kwargs["view"] = self
+            return gen_kwargs
         can_data, can_pos, can_msg = self._check_function(callback)
         full_argument = []
         data = self._pages[self._page]
