@@ -221,11 +221,13 @@ class ModToolsMember(commands.Cog):
             try:
                 timeout = TimeString.parse(split_reason[0])
                 reason = split_reason[1]
-                print(timeout, reason, "INSIDE")
             except TimeStringParseError:
                 self.logger.error("Failed to parse time, ignoring...")
-
-        print(timeout, reason, "PARSED")
+        elif len(split_reason) == 1:
+            try:
+                timeout = TimeString.parse(split_reason[0])
+            except TimeStringParseError:
+                self.logger.error("Failed to parse time, ignoring...")
 
         target_top_role: discord.Role = member.top_role
         my_top_role: discord.Role = ctx.author.top_role
