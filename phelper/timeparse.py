@@ -128,7 +128,7 @@ class TimeString:
     def __repr__(self):
         text_contents = []
         for data in self._data:
-            text_contents.append(f"{_NAME_MAPS.get(data['s'])}={data['t']}")
+            text_contents.append(f"{_NAME_MAPS.get(data.s)}={data.t}")
         if text_contents:
             return f"<TimeString {' '.join(text_contents)}>"
         return "<TimeString NoData>"
