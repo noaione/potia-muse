@@ -222,7 +222,7 @@ class ModToolsMember(commands.Cog):
                 timeout = TimeString.parse(split_reason[0])
                 reason = split_reason[1]
             except TimeStringParseError:
-                pass
+                self.logger.error("Failed to parse time, ignoring...")
 
         target_top_role: discord.Role = member.top_role
         my_top_role: discord.Role = ctx.author.top_role
@@ -245,7 +245,7 @@ class ModToolsMember(commands.Cog):
 
         try:
             self.logger.info(f"Muting {str(member)} for {str(timeout)}")
-            await member.add_roles(self.bot.mute_role, reason=reason)
+            await member.add_roles(self._mute_role, reason=reason)
             self.logger.info(f"Successfully muted {str(member)}")
         except discord.Forbidden:
             self.logger.error("Bot doesn't have the access to mute that member")
