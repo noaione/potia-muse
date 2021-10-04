@@ -66,6 +66,7 @@ class ModToolsMember(commands.Cog):
         self._mute_check_locked = True
         try:
             current_ts = self.bot.now().timestamp()
+            to_be_removed = []
             for muted in self._currently_muted:
                 if "max" not in muted:
                     # Forever muted, sadge
@@ -78,10 +79,13 @@ class ModToolsMember(commands.Cog):
                         try:
                             await member.remove_roles(self._mute_role, reason="Timed mute expired.")
                             self.logger.info(f"User {muted['id']} unmuted.")
+                            to_be_removed.append(muted)
                         except discord.Forbidden:
                             self.logger.warning("Failed to remove role because of missing permissions.")
                         except discord.HTTPException:
                             self.logger.error("An HTTP exception occured while trying to unmute this user!")
+            for remove in to_be_removed:
+                self._currently_muted.remove(remove)
         except Exception:
             pass
         self._mute_check_locked = False
