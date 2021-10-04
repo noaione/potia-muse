@@ -11,6 +11,7 @@ import wavelink
 from discord.ext import commands
 from phelper.bot import PotiaBot
 from phelper.paginator import DiscordPaginatorUI
+from phelper.utils import HelpGenerator
 from wavelink.ext import spotify
 from wavelink.tracks import SearchableTrack
 from wavelink.utils import MISSING
@@ -224,9 +225,82 @@ class PotiaMusik(commands.Cog):
         """Event fired when a track starts playing."""
         self.logger.info(f"Track: <{track.title}> has started playing!")
 
+    def _create_help_embed(self, ctx: commands.Context):
+        embed = HelpGenerator(self.bot, ctx, "musik", desc="Semua perintah musik (1/2)")
+        embed.generate_field(
+            "musik play",
+            [
+                {
+                    "name": "Link atau pencarian",
+                    "type": "r",
+                    "desc": "Anda dapat menggunakan teks untuk mencari, URL Youtube, URL playlist, ataupun URL Spotify (Akan menyetel lagu dari Youtube!)",  # noqa
+                }
+            ],
+            desc="Menyetel lagu/tambah ke queue",
+            examples=[
+                "hoshimachi suisei - stellar stellar",
+                "https://www.youtube.com/watch?v=eq4aExkkuTs",
+                "https://www.youtube.com/playlist?list=OLAK5uy_ndHa01w_Xnhuntill2-ZIUaVbs_LKqhU4",
+            ],
+        )
+        embed.generate_field(
+            "musik join",
+            desc="Bergabung ke sebuah kanal suara",
+        )
+        embed.generate_field(
+            "musik stop", desc="Menghentikan pemutar musik, hanya bisa dilakukan oleh DJ utama dan Admin"
+        )
+        embed.generate_field(
+            "musik leave",
+            desc="Menghentikan pemutar musik dan mengeluarkan bot dari VC, hanya bisa dilakukan oleh DJ utama dan Admin",  # noqa
+        )
+        embed.generate_field(
+            "musik np",
+            desc="Menampilkan lagu yang sedang diputar",
+        )
+        embed2 = HelpGenerator(self.bot, ctx, "musik", desc="Semua perintah musik (2/2)")
+        embed2.generate_field(
+            "musik skip",
+            desc="Melewait lagu yang sedang disetel, Admin/DJ Utama/Peminta lagu dapat langsung melewati lagu tanpa voting.",  # noqa
+        )
+        embed2.generate_field(
+            "musik volume",
+            [{"name": "angka", "type": "r", "desc": "Volume target, dari 1 sampai 100"}],
+            desc="Mengubah volume pemutar musik, hanya bisa dilakukan oleh Admin atau DJ utama!",
+        )
+        embed2.generate_field("musik queue", desc="Menampilkan daftar putar untuk lagu sekarang!")
+        embed2.generate_field(
+            "musik queue remove",
+            [{"name": "posisi", "type": "r", "desc": "Posisi lagu, dapat diliat dengan `p/musik queue`"}],
+            desc="Menghapus lagu dari daftar putar, hanya bisa dilakukan oleh DJ utama, Admin atau yang meminta lagu tersebut!",  # noqa
+            examples=["1"],
+        )
+        embed2.generate_field(
+            "musik queue clear",
+            desc="Membersihkan daftar putar, hanya bisa dilakukan oleh Admin atau DJ utama!",
+        )
+        return [embed.get(), embed2.get()]
+
+    def empty_subcommand(self, ctx: commands.Context, threshold: int = 3):
+        clean_msg: str = ctx.message.clean_content
+        split_content = clean_msg.split(" ")
+        split_content = filter(lambda m: m != "", split_content)
+        return len(list(split_content)) < threshold
+
     @commands.group(name="musik", aliases=["m", "music"])
     async def musik(self, ctx: commands.Context):
-        pass
+        if not ctx.invoked_subcommand:
+            if not self.empty_subcommand(ctx, 2):
+                return
+            help_cmd = self._create_help_embed(ctx)
+            paginator = DiscordPaginatorUI(ctx, help_cmd)
+            await paginator.interact(30.0)
+
+    @musik.command(name="help", aliases=["bantu", "h", "bantuan"])
+    async def musik_help(self, ctx: commands.Context):
+        help_cmd = self._create_help_embed(ctx)
+        paginator = DiscordPaginatorUI(ctx, help_cmd)
+        await paginator.interact(30.0)
 
     @staticmethod
     async def search_track(query: str):
@@ -279,12 +353,13 @@ class PotiaMusik(commands.Cog):
             messages.append(f"**{ix}**. `{track.title}` [{format_duration(track.duration)}]")
 
         await ctx.send("\n".join(messages), reference=ctx.message)
+        _CANCEL_MSG = ["cancel", "batal", "batalkan"]
 
         def check(m: discord.Message):
             return (
                 m.author == ctx.author
                 and m.channel == ctx.channel
-                and m.content.isdigit()
+                and (m.content.isdigit() or m.content.lower() in _CANCEL_MSG)
                 and int(m.content) <= len(max_tracks)
             )
 
@@ -294,9 +369,13 @@ class PotiaMusik(commands.Cog):
             res = await self.bot.wait_for("message", check=check, timeout=30.0)
         except (asyncio.CancelledError, asyncio.TimeoutError):
             self.logger.warning("Message timeout, cancelling...")
+            return MISSING
+        content = res.content
+        if content.lower() in _CANCEL_MSG:
+            self.logger.info(f"{ctx.author} cancelled selection")
             return None
-        selected = max_tracks[int(res.content) - 1]
-        self.logger.info(f"Selected track #{res.content} -- {selected}")
+        selected = max_tracks[int(content) - 1]
+        self.logger.info(f"Selected track #{content} -- {selected}")
         return selected
 
     @musik.command(name="play", aliases=["setel", "mulai", "p"])
@@ -332,10 +411,12 @@ class PotiaMusik(commands.Cog):
                 await self.enqueue_single(ctx, select_track)
             elif should_pick:
                 select_track = await self.select_track(ctx, all_results)
-                if select_track is None:
+                if select_track is MISSING:
                     return await ctx.send(
                         "Timeout, mohon anda ulangi penambahan musik", reference=ctx.message
                     )
+                if select_track is None:
+                    return await ctx.send("Dibatalkan!", reference=ctx.message)
                 await self.enqueue_single(ctx, select_track)
             else:
                 # Queue all tracks
@@ -365,6 +446,10 @@ class PotiaMusik(commands.Cog):
             return await ctx.send("Anda belum join ke VC!", reference=ctx.message)
         self.logger.info(f"Joining VC: {author.voice.channel}")
         vc: wavelink.Player = await author.voice.channel.connect(cls=wavelink.Player)
+        self._create_queue(ctx.guild)
+        guild = self._get_queue(ctx.guild)
+        guild.initiator = author
+        self._PLAYER_QUEUE[ctx.guild.id] = guild
         await ctx.message.add_reaction("👍")
         self.bot.dispatch("wavelink_track_end", vc, None, "Initialization from p/join")
 
@@ -373,24 +458,44 @@ class PotiaMusik(commands.Cog):
         if not ctx.voice_client:
             return await ctx.send("Bot belum sama sekali join VC!")
 
+        author = ctx.author
         vc: wavelink.Player = ctx.voice_client
-        # Flush the queue
-        self._delete_queue(ctx.guild)
-        self._create_queue(ctx.guild)
-
-        await vc.stop()
-        await ctx.message.add_reaction("👍")
+        queue = self._get_queue(ctx.guild)
+        if queue.initiator == author:
+            self._delete_queue(ctx.guild)
+            self._create_queue(ctx.guild)
+            await vc.stop()
+            await ctx.message.add_reaction("👍")
+            return
+        if self._check_perms(author.guild_permissions):
+            self._delete_queue(ctx.guild)
+            self._create_queue(ctx.guild)
+            await vc.stop()
+            await ctx.message.add_reaction("👍")
+            return
+        await ctx.send("Anda tidak memiliki hak untuk menghentikan pemutar musik!")
 
     @musik.command(name="disconnect", aliases=["dc", "leave"])
     async def musik_dc(self, ctx: commands.Context):
         if not ctx.voice_client:
             return await ctx.send("Bot belum sama sekali join VC!")
 
+        author = ctx.author
         vc: wavelink.Player = ctx.voice_client
-        self._delete_queue(ctx.guild)
-        await vc.stop()
-        await vc.disconnect(force=True)
-        await ctx.message.add_reaction("👍")
+        queue = self._get_queue(ctx.guild)
+        if queue.initiator == author:
+            self._delete_queue(ctx.guild)
+            await vc.stop()
+            await vc.disconnect(force=True)
+            await ctx.message.add_reaction("👍")
+            return
+        if self._check_perms(author.guild_permissions):
+            self._delete_queue(ctx.guild)
+            await vc.stop()
+            await vc.disconnect(force=True)
+            await ctx.message.add_reaction("👍")
+            return
+        await ctx.send("Anda tidak memiliki hak untuk membuat bot leave dari kanal ini!")
 
     @musik.command(name="nowplaying", aliases=["np"])
     async def musik_nowplaying(self, ctx: commands.Context):
@@ -582,7 +687,7 @@ class PotiaMusik(commands.Cog):
             await vc.set_volume(volume)
             return await ctx.send(f"Volume diubah menjadi {volume}%", reference=ctx.message)
         if self._check_perms(author.guild_permissions):
-            await vc.volume(volume)
+            await vc.set_volume(volume)
             return await ctx.send(f"Volume diubah menjadi {volume}%", reference=ctx.message)
 
         await ctx.send("Hanya DJ utama atau Admin yang dapat mengubah volume!")
