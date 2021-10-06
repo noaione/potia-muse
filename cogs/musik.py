@@ -152,7 +152,7 @@ class PotiaMusik(commands.Cog):
         """Flush the queue for a guild"""
         self._get_queue(guild).queue._queue.clear()  # Clear the internal queue
 
-    async def _set_main_dj(self, guild: discord.Guild, user: discord.Member):
+    def _set_main_dj(self, guild: discord.Guild, user: discord.Member):
         """Set the main DJ for a guild"""
         self._get_queue(guild).initiator = user
 
@@ -287,7 +287,7 @@ class PotiaMusik(commands.Cog):
         await embed2.generate_field(
             "musik delegasi",
             [{"name": "member", "type": "r", "desc": "Mention member, nama member ataupun ID member"}],
-            desc="Mengubah DJ utama ke member lain (Hanya DJ utama dan Admin)"
+            desc="Mengubah DJ utama ke member lain (Hanya DJ utama dan Admin)",
         )
         return [embed.get(), embed2.get()]
 
