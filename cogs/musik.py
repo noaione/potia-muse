@@ -225,9 +225,9 @@ class PotiaMusik(commands.Cog):
         """Event fired when a track starts playing."""
         self.logger.info(f"Track: <{track.title}> has started playing!")
 
-    def _create_help_embed(self, ctx: commands.Context):
+    async def _create_help_embed(self, ctx: commands.Context):
         embed = HelpGenerator(self.bot, ctx, "musik", desc="Semua perintah musik (1/2)")
-        embed.generate_field(
+        await embed.generate_field(
             "musik play",
             [
                 {
@@ -243,39 +243,39 @@ class PotiaMusik(commands.Cog):
                 "https://www.youtube.com/playlist?list=OLAK5uy_ndHa01w_Xnhuntill2-ZIUaVbs_LKqhU4",
             ],
         )
-        embed.generate_field(
+        await embed.generate_field(
             "musik join",
             desc="Bergabung ke sebuah kanal suara",
         )
-        embed.generate_field(
+        await embed.generate_field(
             "musik stop", desc="Menghentikan pemutar musik, hanya bisa dilakukan oleh DJ utama dan Admin"
         )
-        embed.generate_field(
+        await embed.generate_field(
             "musik leave",
             desc="Menghentikan pemutar musik dan mengeluarkan bot dari VC, hanya bisa dilakukan oleh DJ utama dan Admin",  # noqa
         )
-        embed.generate_field(
+        await embed.generate_field(
             "musik np",
             desc="Menampilkan lagu yang sedang diputar",
         )
         embed2 = HelpGenerator(self.bot, ctx, "musik", desc="Semua perintah musik (2/2)")
-        embed2.generate_field(
+        await embed2.generate_field(
             "musik skip",
             desc="Melewait lagu yang sedang disetel, Admin/DJ Utama/Peminta lagu dapat langsung melewati lagu tanpa voting.",  # noqa
         )
-        embed2.generate_field(
+        await embed2.generate_field(
             "musik volume",
             [{"name": "angka", "type": "r", "desc": "Volume target, dari 1 sampai 100"}],
             desc="Mengubah volume pemutar musik, hanya bisa dilakukan oleh Admin atau DJ utama!",
         )
-        embed2.generate_field("musik queue", desc="Menampilkan daftar putar untuk lagu sekarang!")
-        embed2.generate_field(
+        await embed2.generate_field("musik queue", desc="Menampilkan daftar putar untuk lagu sekarang!")
+        await embed2.generate_field(
             "musik queue remove",
             [{"name": "posisi", "type": "r", "desc": "Posisi lagu, dapat diliat dengan `p/musik queue`"}],
             desc="Menghapus lagu dari daftar putar, hanya bisa dilakukan oleh DJ utama, Admin atau yang meminta lagu tersebut!",  # noqa
             examples=["1"],
         )
-        embed2.generate_field(
+        await embed2.generate_field(
             "musik queue clear",
             desc="Membersihkan daftar putar, hanya bisa dilakukan oleh Admin atau DJ utama!",
         )
@@ -292,13 +292,13 @@ class PotiaMusik(commands.Cog):
         if not ctx.invoked_subcommand:
             if not self.empty_subcommand(ctx, 2):
                 return
-            help_cmd = self._create_help_embed(ctx)
+            help_cmd = await self._create_help_embed(ctx)
             paginator = DiscordPaginatorUI(ctx, help_cmd)
             await paginator.interact(30.0)
 
     @musik.command(name="help", aliases=["bantu", "h", "bantuan"])
     async def musik_help(self, ctx: commands.Context):
-        help_cmd = self._create_help_embed(ctx)
+        help_cmd = await self._create_help_embed(ctx)
         paginator = DiscordPaginatorUI(ctx, help_cmd)
         await paginator.interact(30.0)
 
@@ -394,6 +394,9 @@ class PotiaMusik(commands.Cog):
             self._PLAYER_QUEUE[ctx.guild.id] = guild
         else:
             vc: wavelink.Player = ctx.voice_client
+
+        if not author.voice:
+            return await ctx.send(f"Mohon join voice chat {vc.channel.mention} untuk menyetel lagu!")
 
         self.logger.info(f"Trying to process: {query}")
         try:
@@ -553,6 +556,9 @@ class PotiaMusik(commands.Cog):
             await vc.stop()
             return await ctx.send("Orang yang meminta lagu ini telah melewati lagu ini!")
 
+        if not author.voice:
+            return await ctx.send(f"Mohon join voice chat {vc.channel.mention} untuk melewati lagu!")
+
         queue.skip_votes.add(author.id)
 
         # Do votes skip
@@ -673,16 +679,23 @@ class PotiaMusik(commands.Cog):
         )
 
     @musik.command(name="volume", aliases=["vol"])
-    async def musik_volume(self, ctx: commands.Context, volume: int):
+    async def musik_volume(self, ctx: commands.Context, volume: int = None):
         if not ctx.voice_client:
             return await ctx.send("Bot belum sama sekali join VC!")
+
+        vc: wavelink.Player = ctx.voice_client
+        author = ctx.author
+        if not volume:
+            vol_real = int(vc.volume)
+            return await ctx.send(f"🔉 Volume sekarang adalah {vol_real}%")
+
+        if not author.voice:
+            return await ctx.send(f"Mohon join voice chat {vc.channel.mention} untuk mengatur volume!")
 
         if volume < 1 or volume > 100:
             return await ctx.send("Volume harus antara 1-100!")
 
-        author = ctx.author
         queue = self._get_queue(ctx.guild)
-        vc: wavelink.Player = ctx.voice_client
         if queue.initiator == author:
             await vc.set_volume(volume)
             return await ctx.send(f"Volume diubah menjadi {volume}%", reference=ctx.message)
@@ -691,6 +704,22 @@ class PotiaMusik(commands.Cog):
             return await ctx.send(f"Volume diubah menjadi {volume}%", reference=ctx.message)
 
         await ctx.send("Hanya DJ utama atau Admin yang dapat mengubah volume!")
+
+    @musik.command(name="info")
+    async def musik_info(self, ctx: commands.Context):
+        if not ctx.voice_client:
+            return await ctx.send("Bot belum sama sekali join VC!")
+
+        vc: wavelink.Player = ctx.voice_client
+        queue = self._get_queue(ctx.guild)
+
+        quick_info = []
+        quick_info.append("**Informasi pemutar lagu**")
+        quick_info.append(f"**Peladen**: {ctx.guild.name}")
+        quick_info.append(f"**DJ Utama**: {queue.initiator}")
+        quick_info.append(f"**Aktif?**: {vc.is_playing()}")
+        quick_info.append(f"**Total daftar putar**: {queue.queue.qsize()}")
+        await ctx.send("\n".join(quick_info))
 
 
 def setup(bot: PotiaBot):
