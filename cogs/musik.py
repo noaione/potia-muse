@@ -258,6 +258,10 @@ class PotiaMusik(commands.Cog):
             "musik np",
             desc="Menampilkan lagu yang sedang diputar",
         )
+        await embed.generate_field(
+            "musik info",
+            desc="Menampilkan informasi pemutar musik pada peladen ini"
+        )
         embed2 = HelpGenerator(self.bot, ctx, "musik", desc="Semua perintah musik (2/2)")
         await embed2.generate_field(
             "musik skip",
