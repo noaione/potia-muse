@@ -89,6 +89,7 @@ class PotiaMusikQueue:
     # Skipping stuff
     skip_votes: MutableSet[int] = field(default_factory=set)
     initiator: discord.Member = None
+    channel: discord.VoiceChannel = None
 
 
 class PotiaMusik(commands.Cog):
@@ -160,6 +161,34 @@ class PotiaMusik(commands.Cog):
     async def on_wavelink_node_ready(self, node: wavelink.Node):
         """Event fired when a node has finished connecting."""
         self.logger.info(f"Node: <{node.identifier}> [{node.region.name}] is ready!")
+
+    @commands.Cog.listener("on_voice_state_update")
+    async def _auto_voice_delegation(
+        self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState
+    ):
+        """Automatically delegate"""
+        if member.bot:
+            return
+        guild = member.guild
+        queue = self._get_queue(guild)
+        if not queue:
+            return
+
+        if before.channel is not None and before.channel.id == queue.channel.id:
+            if after.channel is None or after.channel.id != queue.channel.id:
+                # Automatically delegate to random person in VC
+                channel = queue.channel
+                new_initiator = None
+                for cmem in channel.members:
+                    if cmem.id != member.id and not cmem.bot:
+                        new_initiator = cmem
+                        break
+
+                if new_initiator is None:
+                    # No one to delegate to, ignore.
+                    return
+
+                self._set_main_dj(guild, new_initiator)
 
     @staticmethod
     async def _fetch_track_queue(queue: asyncio.Queue[PotiaTrackQueued]):
@@ -401,6 +430,7 @@ class PotiaMusik(commands.Cog):
             self._create_queue(ctx.guild)
             guild = self._get_queue(ctx.guild)
             guild.initiator = author
+            guild.channel = vc.channel
             self._PLAYER_QUEUE[ctx.guild.id] = guild
         else:
             vc: wavelink.Player = ctx.voice_client
@@ -462,6 +492,7 @@ class PotiaMusik(commands.Cog):
         self._create_queue(ctx.guild)
         guild = self._get_queue(ctx.guild)
         guild.initiator = author
+        guild.channel = vc.channel
         self._PLAYER_QUEUE[ctx.guild.id] = guild
         await ctx.message.add_reaction("👍")
         self.bot.dispatch("wavelink_track_end", vc, None, "Initialization from p/join")
