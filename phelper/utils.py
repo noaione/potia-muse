@@ -290,8 +290,8 @@ class HelpGenerator:
         self.bot: commands.Bot = bot
         self.logger = logging.getLogger("nthelper.utils.HelpGenerator")
 
-        self._ver = self.bot.semver
-        commit = self.bot.get_commit
+        self._ver = getattr(self.bot, "semver", "UNKNOWN")
+        commit = getattr(self.bot, "get_commit", {"hash": None})
         if commit["hash"] is not None:
             self._ver += f" ({commit['hash']})"
         self._pre = self.bot.prefixes(ctx)
