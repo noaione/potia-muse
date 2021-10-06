@@ -152,6 +152,10 @@ class PotiaMusik(commands.Cog):
         """Flush the queue for a guild"""
         self._get_queue(guild).queue._queue.clear()  # Clear the internal queue
 
+    async def _set_main_dj(self, guild: discord.Guild, user: discord.Member):
+        """Set the main DJ for a guild"""
+        self._get_queue(guild).initiator = user
+
     @commands.Cog.listener()
     async def on_wavelink_node_ready(self, node: wavelink.Node):
         """Event fired when a node has finished connecting."""
@@ -258,10 +262,7 @@ class PotiaMusik(commands.Cog):
             "musik np",
             desc="Menampilkan lagu yang sedang diputar",
         )
-        await embed.generate_field(
-            "musik info",
-            desc="Menampilkan informasi pemutar musik pada peladen ini"
-        )
+        await embed.generate_field("musik info", desc="Menampilkan informasi pemutar musik pada peladen ini")
         embed2 = HelpGenerator(self.bot, ctx, "musik", desc="Semua perintah musik (2/2)")
         await embed2.generate_field(
             "musik skip",
@@ -282,6 +283,11 @@ class PotiaMusik(commands.Cog):
         await embed2.generate_field(
             "musik queue clear",
             desc="Membersihkan daftar putar, hanya bisa dilakukan oleh Admin atau DJ utama!",
+        )
+        await embed2.generate_field(
+            "musik delegasi",
+            [{"name": "member", "type": "r", "desc": "Mention member, nama member ataupun ID member"}],
+            desc="Mengubah DJ utama ke member lain (Hanya DJ utama dan Admin)"
         )
         return [embed.get(), embed2.get()]
 
@@ -724,6 +730,24 @@ class PotiaMusik(commands.Cog):
         quick_info.append(f"**Aktif?**: {vc.is_playing()}")
         quick_info.append(f"**Total daftar putar**: {queue.queue.qsize()}")
         await ctx.send("\n".join(quick_info))
+
+    @musik.command(name="delegasi", aliases=["gantidj"])
+    async def musik_delegasi_dj(self, ctx: commands.Context, new_dj: commands.MemberConverter):
+        if not ctx.voice_client:
+            return await ctx.send("Bot belum sama sekali join VC!")
+
+        queue = self._get_queue(ctx.guild)
+        if (queue.initiator != ctx.author) and (not self._check_perms(ctx.author.guild_permissions)):
+            return await ctx.send("Hanya DJ utama atau Admin yang dapat delegasi hak DJ VC ini!")
+
+        if not isinstance(new_dj, discord.Member):
+            return await ctx.send("Tidak dapat menemukan member tersebut!")
+
+        if new_dj.guild != ctx.guild:
+            return await ctx.send("Member tersebut bukan member peladen ini!")
+
+        self._set_main_dj(ctx.guild, new_dj)
+        await ctx.send(f"{new_dj.mention} sekarang menjadi DJ utama!", reference=ctx.message)
 
 
 def setup(bot: PotiaBot):
