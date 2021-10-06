@@ -294,7 +294,7 @@ class HelpGenerator:
         commit = getattr(self.bot, "get_commit", {"hash": None})
         if commit["hash"] is not None:
             self._ver += f" ({commit['hash']})"
-        self._pre = self.bot.prefixes(ctx)
+        self._pre = "p/"
         self._no_pre = False
 
         if cmd_name.endswith("[*]"):
