@@ -411,13 +411,20 @@ class PotiaMusik(commands.Cog):
         )
         await embed2.generate_field(
             "musik volume",
-            [{"name": "angka", "type": "r", "desc": "Volume target, dari 1 sampai 100"}],
+            [{"name": "angka", "type": "r", "desc": "`<angka>` merupakan volume target, dari 1 sampai 100"}],
             desc="Mengubah volume pemutar musik, hanya bisa dilakukan oleh Admin atau DJ utama!",
+            examples=["50", "100", "1"],
         )
         await embed2.generate_field("musik queue", desc="Menampilkan daftar putar untuk lagu sekarang!")
         await embed2.generate_field(
             "musik queue remove",
-            [{"name": "posisi", "type": "r", "desc": "Posisi lagu, dapat diliat dengan `p/musik queue`"}],
+            [
+                {
+                    "name": "posisi",
+                    "type": "r",
+                    "desc": "`<posisi>` merupakan posisi lagu, dapat diliat dengan `p/musik queue`",
+                }
+            ],
             desc="Menghapus lagu dari daftar putar, hanya bisa dilakukan oleh DJ utama, Admin atau yang meminta lagu tersebut!",  # noqa
             examples=["1"],
         )
@@ -425,10 +432,29 @@ class PotiaMusik(commands.Cog):
             "musik queue clear",
             desc="Membersihkan daftar putar, hanya bisa dilakukan oleh Admin atau DJ utama!",
         )
+        # _mode_off = ["off", "no", "matikan", "mati"]
+        # _mode_single = ["single", "satu", "ini"]
+        # _mode_all = ["all", "semua"]
+        _mode_TEXT = "Matikan: `off`, `no`, `matikan`, `mati`\n"
+        _mode_TEXT += "Single (Satu lagu): `single`, `satu`, `ini`\n"
+        _mode_TEXT += "Semua (Semua lagu): `all`, `semua`"
+        await embed2.generate_field(
+            "musik repeat",
+            [
+                {
+                    "name": "mode",
+                    "type": "r",
+                    "desc": f"`<mode>` merupakan mode repeat yang diinginkan\n{_mode_TEXT}",
+                }
+            ],
+            desc="Gunakan mode repeat untuk pemutar lagu",
+            examples=["off", "single", "all"],
+        )
         await embed2.generate_field(
             "musik delegasi",
             [{"name": "member", "type": "r", "desc": "Mention member, nama member ataupun ID member"}],
             desc="Mengubah DJ utama ke member lain (Hanya DJ utama dan Admin)",
+            examples=["466469077444067372", "@N4O"],
         )
         return [embed.get(), embed2.get()]
 
