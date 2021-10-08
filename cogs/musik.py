@@ -98,18 +98,22 @@ class PotiaQueueImpl(asyncio.Queue[PT]):
     @classmethod
     def from_other(cls, other: PotiaQueueImpl):
         new_queue = cls(maxsize=other._maxsize)
-        if isinstance(other._queue, list):
+        other_queue = getattr(other, "_original_queue", getattr(other, "_queue"))
+        if isinstance(other_queue, list):
             # Use normal list
-            new_queue._queue = cls._process_list(other._queue)
+            new_queue._queue = cls._process_list(other_queue)
         else:
-            new_queue._queue = collections.deque(other._queue)
+            new_queue._queue = collections.deque(other_queue)
 
         if hasattr(new_queue, "_original_queue"):
-            queue_attr = getattr(other, "_original_queue", getattr(other, "_queue", None))
-            if queue_attr is not None:
-                new_queue._original_queue = collections.deque(queue_attr)
+            new_queue._original_queue = collections.deque(other_queue)
 
         return new_queue
+
+    def qsize(self):
+        if hasattr(self, "_original_queue"):
+            return len(self._original_queue)
+        return super().qsize()
 
 
 class PotiaQueueSingle(PotiaQueueImpl[PT]):
@@ -131,31 +135,27 @@ class PotiaQueueSingle(PotiaQueueImpl[PT]):
         self._original_queue = collections.deque[PT]()
 
     def _put(self, item: PT):
-        self._queue = [item]
+        self._original_queue.append(item)
 
     def _get(self):
-        last_item = self._queue.put()
-        self._put(last_item)
-        return last_item
+        return self._queue[0]
 
 
 class PotiaQueueAll(PotiaQueueImpl[PT]):
     """A basic queue that basically repeat all track"""
 
-    _queue: List[PT]
-    _original_queue: Deque[PT]
+    _queue: Deque[PT]
 
     def _init(self, maxsize: int):
-        self._queue = []
-        self._original_queue = collections.deque[PT]()
+        self._queue = collections.deque[PT]()
 
     def _put(self, item: PT):
         self._queue.append(item)
 
     def _get(self):
-        first_item = self._queue.pop(0)
-        self._put(first_item)
-        return first_item
+        pop_first = self._queue.popleft()
+        self._put(pop_first)
+        return pop_first
 
 
 @dataclass
@@ -206,6 +206,18 @@ class PotiaMusik(commands.Cog):
                 spotify_client=spotify_client,
             )
 
+    def cog_unload(self) -> None:
+        self.bot.loop.create_task(self.disconnect_all_instances(), name="PotiaMusik-VCDisconnection")
+
+    async def disconnect_all_instances(self):
+        """Disconnect all nodes"""
+        _channel_ids = [instance.channel.id for instance in self._PLAYER_QUEUE.values()]
+        if not _channel_ids:
+            return
+        for vc_instance in self.bot.voice_clients:
+            if vc_instance.channel.id in _channel_ids:
+                await vc_instance.disconnect(force=True)
+
     def _create_queue(self, guild: discord.Guild):
         """Create a queue for a guild"""
         if guild.id not in self._PLAYER_QUEUE:
@@ -252,8 +264,8 @@ class PotiaMusik(commands.Cog):
             queue.queue = PotiaQueueSingle.from_other(queue.queue)
         elif mode == PotiaTrackRepeat.ALL:
             queue.queue = PotiaQueueAll.from_other(queue.queue)
-        else:
-            return MISSING
+        elif mode == PotiaTrackRepeat.DISABLE:
+            queue.queue = PotiaQueueImpl.from_other(queue.queue)
         self._PLAYER_QUEUE[guild.id] = queue
         return queue
 
@@ -870,20 +882,18 @@ class PotiaMusik(commands.Cog):
         elif mode in _mode_all:
             mode_change = PotiaTrackRepeat.ALL
 
-        if queue.queue.qsize() < 1 and queue.current is None and mode_change != PotiaTrackRepeat.DISABLE:
-            return await ctx.send("Tidak ada lagu di daftar putar!")
-
         change_res = self._change_repeat_mode(ctx.guild, mode_change)
         if change_res is None:
             return await ctx.send("Sudah dalam mode repeat yang anda berikan!")
         if change_res is MISSING:
             return await ctx.send("Mode repeat tidak diketahui!")
 
-        if change_res.queue.qsize() < 1 and queue.current is not None:
-            if mode_change == PotiaTrackRepeat.SINGLE:
-                change_res.queue._put(change_res.current)
-            elif mode_change == PotiaTrackRepeat.ALL:
-                change_res.queue.put_nowait(change_res.current)
+        if mode_change == PotiaTrackRepeat.SINGLE:
+            if queue.current is not None:
+                change_res.queue._queue = [queue.current]
+        elif mode_change == PotiaTrackRepeat.ALL:
+            if queue.current is not None:
+                change_res.queue.put_nowait(queue.current)
 
         _repeat_text = f"Mode repeat diubah menjadi: {mode_change.nice()}"
         return await ctx.send(_repeat_text, reference=ctx.message)
@@ -896,11 +906,15 @@ class PotiaMusik(commands.Cog):
         vc: wavelink.Player = ctx.voice_client
         queue = self._get_queue(ctx.guild)
 
+        is_playing = "Tidak"
+        if vc.is_playing():
+            is_playing = "Ya"
+
         quick_info = []
         quick_info.append("**Informasi pemutar lagu**")
         quick_info.append(f"**Peladen**: {ctx.guild.name}")
         quick_info.append(f"**DJ Utama**: {queue.initiator}")
-        quick_info.append(f"**Aktif?**: {vc.is_playing()}")
+        quick_info.append(f"**Aktif?**: {is_playing}")
         quick_info.append(f"**Volume**: {int(vc.volume)}%")
         quick_info.append(f"**Repeat**: {queue.repeat.nice()}")
         quick_info.append(f"**Total daftar putar**: {queue.queue.qsize()}")
