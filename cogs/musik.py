@@ -282,8 +282,9 @@ class PotiaMusik(commands.Cog):
         if member.bot:
             return
         guild = member.guild
+        vc_check = guild.voice_client
         queue = self._get_queue(guild)
-        if not queue:
+        if not vc_check:
             return
 
         if before.channel is not None and before.channel.id == queue.channel.id:
