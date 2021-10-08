@@ -73,7 +73,7 @@ class ModToolsMember(commands.Cog):
                     continue
                 if current_ts > muted["max"]:
                     self.logger.info(f"Unmuting user: {muted['id']}")
-                    await self.bot.redis.delete("potiamuse_muted_" + muted["id"])
+                    await self.bot.redis.rm("potiamuse_muted_" + muted["id"])
                     member: discord.Member = self._guild.get_member(int(muted["id"]))
                     if member is not None:
                         try:
@@ -89,6 +89,40 @@ class ModToolsMember(commands.Cog):
         except Exception:
             pass
         self._mute_check_locked = False
+
+    @commands.Cog.listener("on_member_update")
+    async def _watch_muted_role_voice(self, before: discord.Member, after: discord.Member):
+        if before.guild.id != 864004899783180308:
+            return
+        before_muted = False
+        _mute_id = 866180421196447765
+        for brole in before.roles:
+            if brole.id == _mute_id:
+                before_muted = True
+        after_muted = False
+        for arole in after.roles:
+            if arole.id == _mute_id:
+                after_muted = True
+
+        if not before_muted and not after_muted:
+            return
+
+        if not before_muted and after_muted:
+            self.logger.info(f"{before} got mute role, will globally mute the user in VC")
+            try:
+                await after.edit(mute=True)
+            except discord.Forbidden as df:
+                self.logger.warning("Failed to mute user because of missing permissions.", exc_info=df)
+            except discord.HTTPException as hte:
+                self.logger.error("An HTTP exception occured while trying to mute this user!", exc_info=hte)
+        elif before_muted and not after_muted:
+            self.logger.info(f"{before} mute role removed, will globally unmute the user in VC")
+            try:
+                await after.edit(mute=True)
+            except discord.Forbidden as df:
+                self.logger.warning("Failed to unmute user because of missing permissions.", exc_info=df)
+            except discord.HTTPException as hte:
+                self.logger.error("An HTTP exception occured while trying to unmute this user!", exc_info=hte)
 
     @commands.Cog.listener("on_member_join")
     async def _watch_user_missing_and_shit(self, member: discord.Member):
