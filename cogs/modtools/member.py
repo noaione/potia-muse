@@ -118,7 +118,7 @@ class ModToolsMember(commands.Cog):
         elif before_muted and not after_muted:
             self.logger.info(f"{before} mute role removed, will globally unmute the user in VC")
             try:
-                await after.edit(mute=True)
+                await after.edit(mute=False)
             except discord.Forbidden as df:
                 self.logger.warning("Failed to unmute user because of missing permissions.", exc_info=df)
             except discord.HTTPException as hte:
