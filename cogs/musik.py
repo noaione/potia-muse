@@ -754,7 +754,7 @@ class PotiaMusik(commands.Cog):
 
         # Do votes skip
         required = self._get_requirement(ctx.voice_client)
-        if required >= len(queue.skip_votes):
+        if required <= len(queue.skip_votes):
             # Skip
             self.logger.info(f"Voted skip for song: {queue.current.track}")
             await vc.stop()
