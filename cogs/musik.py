@@ -183,6 +183,14 @@ class PotiaMusik(commands.Cog):
         self.logger = logging.getLogger("Cog.PotiaMusik")
 
         self._PLAYER_QUEUE: Dict[int, PotiaMusikQueue] = {}
+        _cached_queue = getattr(self.bot, "_potia_music_cache", None)
+        if isinstance(_cached_queue, dict):
+            self._PLAYER_QUEUE = _cached_queue
+            self.logger.info("Loaded cached queue")
+            try:
+                delattr(self.bot, "_potia_music_cache")
+            except AttributeError:
+                pass
         bot.loop.create_task(self.setup_wavelink())
 
     async def setup_wavelink(self):
@@ -207,6 +215,7 @@ class PotiaMusik(commands.Cog):
             )
 
     def cog_unload(self) -> None:
+        setattr(self.bot, "_potia_music_cache", self._PLAYER_QUEUE)
         self.bot.loop.create_task(self.disconnect_all_instances(), name="PotiaMusik-VCDisconnection")
 
     async def disconnect_all_instances(self):
@@ -285,6 +294,8 @@ class PotiaMusik(commands.Cog):
         vc_check = guild.voice_client
         queue = self._get_queue(guild)
         if not vc_check:
+            return
+        if member.id != queue.initiator.id:
             return
 
         if before.channel is not None and before.channel.id == queue.channel.id:
