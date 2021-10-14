@@ -733,10 +733,8 @@ class PotiaMusik(commands.Cog):
         vc: wavelink.Player = ctx.voice_client
 
         queue = self._get_queue(ctx.guild)
-        if queue.queue.empty():
-            return await ctx.send("Tidak ada lagu yang ada di daftar putar!")
-        if queue.current is None:
-            return await ctx.send("Tidak ada lagu yang berlangsung untuk di lewati!")
+        if queue.current is None and queue.queue.empty():
+            return await ctx.send("Tidak ada lagu yang bisa di lewati!")
         if queue.initiator == author:
             await vc.stop()
             return await ctx.send("DJ utama melewati untuk lagu ini!")
