@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import asyncio
 import collections
+import time
+import re
 import logging
 from dataclasses import dataclass, field
 from enum import Enum
 from functools import partial
 from math import ceil
-from typing import Deque, Dict, List, MutableSet, TypeVar, Union
+from typing import Deque, Dict, List, MutableSet, Optional, TypeVar, Union
 
 import discord
 import wavelink
@@ -20,6 +22,8 @@ from wavelink.tracks import SearchableTrack
 from wavelink.utils import MISSING
 
 PT = TypeVar("PT")
+
+SPOTIREGEX = re.compile(r"https://open\.spotify\.com/(?P<entity>.+)/(?P<identifier>.+)\?")
 
 
 class UnsupportedURLType(Exception):
@@ -56,6 +60,24 @@ class YoutubeDirectLinkTrack(SearchableTrack):
         if return_first:
             return tracks[0]
         return tracks
+
+
+class SpotifyTrack(wavelink.Track):
+    thumbnail: Optional[str]
+    extra_data: dict
+
+    def inject_data(self, info: dict):
+        self.extra_data = info
+        author = []
+        for a in info["artists"]:
+            author.append(a["name"])
+        self.author = ", ".join(author)
+        try:
+            self.thumbnail = info["album"]["images"][0]["url"]
+        except Exception:
+            self.thumbnail = None
+        self.title = info["name"]
+        self.duration = info["duration_ms"] / 1000
 
 
 class PotiaTrackRepeat(Enum):
@@ -374,6 +396,8 @@ class PotiaMusik(commands.Cog):
         if isinstance(track, (wavelink.YouTubeTrack, YoutubeDirectLinkTrack)):
             embed.set_image(url=f"https://i.ytimg.com/vi/{track.identifier}/hqdefault.jpg")
             description.append(f"\n[Link](https://youtu.be/{track.identifier})")
+        if isinstance(track, SpotifyTrack) and track.thumbnail:
+            embed.set_image(url=track.thumbnail)
         embed.description = "\n".join(description)
         return embed
 
@@ -491,22 +515,86 @@ class PotiaMusik(commands.Cog):
         paginator = DiscordPaginatorUI(ctx, help_cmd)
         await paginator.interact(30.0)
 
-    @staticmethod
-    async def search_track(query: str):
+    async def _internal_spotify_track_fetch(self, track_id: str, token: str):
+        header = {"Content-Type": "application/json", "Authorization": f"Bearer {token}"}
+        async with self.bot.aiosession.get(
+            f"https://api.spotify.com/v1/tracks/{track_id}", headers=header
+        ) as resp:
+            data = await resp.json()
+            if resp.status != 200:
+                return None
+        return data
+
+    async def _internal_spotify_album_fetch(self, album_id: str, token: str):
+        header = {"Content-Type": "application/json", "Authorization": f"Bearer {token}"}
+        async with self.bot.aiosession.get(
+            f"https://api.spotify.com/v1/albums/{album_id}/tracks", headers=header, params={"limit": "50"}
+        ) as resp:
+            data = await resp.json()
+            if resp.status != 200:
+                return None
+        return data.get("items", [])
+
+    def _build_spoti_url(self, track_id: str):
+        spoti_url = None
+        for node in self.bot.config.lavanodes:
+            if node.spotify:
+                spoti_url = node.spotify.url
+                if spoti_url.endswith("/"):
+                    spoti_url = spoti_url[:-1]
+        return f"{spoti_url}/{track_id}/download"
+
+    async def _internal_spotify_search(
+        self, query: str, node: wavelink.Node
+    ) -> Optional[Union[SpotifyTrack, List[SpotifyTrack]]]:
+        """Search spotify API"""
+
+        regex_res = SPOTIREGEX.match(query)
+        if not regex_res:
+            return None
+
+        entity = regex_res["entity"]
+        track_id = regex_res["identifier"]
+
+        if entity not in ("track", "album"):
+            raise UnsupportedURLType
+
+        spoti = node._spotify
+        if spoti is None:
+            return None
+
+        if not spoti._bearer_token or time.time() > spoti._expiry:
+            await spoti._get_bearer_token()
+
+        token = spoti._bearer_token
+        if entity == "track":
+            result = await self._internal_spotify_track_fetch(track_id, token)
+            if result is not None:
+                build_url = self._build_spoti_url(result["id"])
+                tracks = await node.get_tracks(SpotifyTrack, build_url)
+                first_track = tracks[0]
+                first_track.inject_data(result)
+                return first_track
+            return None
+
+        results = await self._internal_spotify_album_fetch(track_id, token)
+        merged_tracks = []
+        for result in results:
+            build_url = self._build_spoti_url(result["id"])
+            tracks = await node.get_tracks(SpotifyTrack, build_url)
+            first_track = tracks[0]
+            first_track.inject_data(result)
+            merged_tracks.append(first_track)
+        return merged_tracks
+
+    async def search_track(self, query: str, node: wavelink.Node):
         """Search for a track"""
         if query.startswith("http"):
             if "spotify.com" in query:
-                s_type = spotify.SpotifySearchType.track
                 if "/playlist/" in query:
                     raise UnsupportedURLType
-                if "/album/" in query:
-                    s_type = spotify.SpotifySearchType.album
-                results = await spotify.SpotifyTrack.search(
-                    query,
-                    type=s_type,
-                    return_first="/album/" not in query,
-                )
-                return results, False
+                spoti_results = await self._internal_spotify_search(query, node)
+                return spoti_results, False
             elif "soundcloud" in query:
                 raise UnsupportedURLType
             else:
@@ -571,6 +659,7 @@ class PotiaMusik(commands.Cog):
     async def musik_play(self, ctx: commands.Context, *, query: str):
         author: discord.Member = ctx.author
 
+        first_run = False
         if not ctx.voice_client:
             self.logger.info("VC is not instanted, connecting...")
             if author.voice is None:
@@ -582,6 +671,7 @@ class PotiaMusik(commands.Cog):
             guild.initiator = author
             guild.channel = vc.channel
             self._PLAYER_QUEUE[ctx.guild.id] = guild
+            first_run = True
         else:
             vc: wavelink.Player = ctx.voice_client
 
@@ -591,7 +681,7 @@ class PotiaMusik(commands.Cog):
         self.logger.info(f"Trying to process: {query}")
         try:
             await ctx.send("Mencoba memuat lagu...", reference=ctx.message)
-            all_results, should_pick = await self.search_track(query)
+            all_results, should_pick = await self.search_track(query, vc.node)
         except UnsupportedURLType:
             return await ctx.send("URL yang anda berikan tidak kami dukung!", reference=ctx.message)
 
@@ -625,7 +715,7 @@ class PotiaMusik(commands.Cog):
         else:
             await self.enqueue_single(ctx, all_results)
 
-        if not vc.is_playing():
+        if first_run:
             # Manually fire
             await self.on_wavelink_track_end(vc, None, "Initialized from p/musik play")
 
@@ -765,11 +855,17 @@ class PotiaMusik(commands.Cog):
             )
 
     def _generate_simple_queue_embed(
-        self, dataset: List[PotiaTrackQueued], current: int, maximum: int, real_total: int
+        self,
+        dataset: List[PotiaTrackQueued],
+        current: int,
+        maximum: int,
+        real_total: int,
+        total_duration: float,
     ):
         embed = discord.Embed(title=f"Daftar Putar ({current + 1}/{maximum})", colour=discord.Color.random())
 
         starting_track = ((current + 1) * 5) - 5
+        total_durasi = format_duration(total_duration)
 
         description_fmt = []
         for n, track in enumerate(dataset, starting_track + 1):
@@ -778,7 +874,7 @@ class PotiaMusik(commands.Cog):
             )
 
         embed.description = "\n".join(description_fmt)
-        embed.set_footer(text=f"Tersisa {real_total} lagu")
+        embed.set_footer(text=f"Tersisa {real_total} lagu | {total_durasi}")
         return embed
 
     @musik.group(name="queue", aliases=["q"])
@@ -792,6 +888,7 @@ class PotiaMusik(commands.Cog):
                 return await ctx.send("Tidak ada lagu yang akan disetel!")
 
             all_queued_tracks: List[wavelink.Track] = [d for d in queue.queue._queue]
+            total_duration = sum(track.duration for track in all_queued_tracks)
             # Split the all_queued_tracks into chunks of 5
             chunked_tracks = [all_queued_tracks[i : i + 5] for i in range(0, len(all_queued_tracks), 5)]
 
@@ -799,6 +896,7 @@ class PotiaMusik(commands.Cog):
                 self._generate_simple_queue_embed,
                 maximum=len(chunked_tracks),
                 real_total=len(all_queued_tracks),
+                total_duration=total_duration,
             )
 
             view = DiscordPaginatorUI(ctx, chunked_tracks)

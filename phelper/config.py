@@ -47,6 +47,7 @@ class RedisConfig(NamedTuple):
 class PotiaLavalinkSpotifyNode(NamedTuple):
     id: str
     secret: str
+    url: str
 
     @classmethod
     def parse_config(cls, config: BotConfig):
@@ -60,10 +61,11 @@ class PotiaLavalinkSpotifyNode(NamedTuple):
             raise ConfigParseError(
                 "lavalink_nodes.X.spotify.secret", "Spotify Secret dibutuhkan untuk fitur Spotify!"
             )
-        return cls(id, secret)
+        url = config.get("url", None)
+        return cls(id, secret, url)
 
     def serialize(self):
-        return {"id": self.id, "secret": self.secret}
+        return {"id": self.id, "secret": self.secret, "url": self.url}
 
 
 class PotiaLavalinkNodes(NamedTuple):
@@ -163,7 +165,7 @@ class PotiaBotConfig(NamedTuple):
         )
 
     def serialize(self):
-        return {
+        basis = {
             "token": self.token,
             "prefix": self.default_prefix,
             "redisdb": self.redis.serialize(),
@@ -172,3 +174,4 @@ class PotiaBotConfig(NamedTuple):
             "lavalink_nodes": [node.serialize() for node in self.lavanodes],
             "openai_token": str_or_none(self.openai_token),
         }
+        return basis
