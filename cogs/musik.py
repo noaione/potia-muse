@@ -63,11 +63,13 @@ class YoutubeDirectLinkTrack(SearchableTrack):
 
 
 class SpotifyTrack(wavelink.Track):
+    internal_id: str
     thumbnail: Optional[str]
     extra_data: dict
 
     def inject_data(self, info: dict):
         self.extra_data = info
+        self.internal_id = info["id"]
         author = []
         for a in info["artists"]:
             author.append(a["name"])
@@ -396,8 +398,10 @@ class PotiaMusik(commands.Cog):
         if isinstance(track, (wavelink.YouTubeTrack, YoutubeDirectLinkTrack)):
             embed.set_image(url=f"https://i.ytimg.com/vi/{track.identifier}/hqdefault.jpg")
             description.append(f"\n[Link](https://youtu.be/{track.identifier})")
-        if isinstance(track, SpotifyTrack) and track.thumbnail:
-            embed.set_image(url=track.thumbnail)
+        if isinstance(track, SpotifyTrack):
+            if track.thumbnail:
+                embed.set_image(url=track.thumbnail)
+            description.append(f"\n[Link](https://open.spotify.com/track/{track.internal_id})")
         embed.description = "\n".join(description)
         return embed
 
@@ -887,8 +891,8 @@ class PotiaMusik(commands.Cog):
             if queue.queue.empty():
                 return await ctx.send("Tidak ada lagu yang akan disetel!")
 
-            all_queued_tracks: List[wavelink.Track] = [d for d in queue.queue._queue]
-            total_duration = sum(track.duration for track in all_queued_tracks)
+            all_queued_tracks: List[PotiaTrackQueued] = [d for d in queue.queue._queue]
+            total_duration = sum(track.track.duration for track in all_queued_tracks)
             # Split the all_queued_tracks into chunks of 5
             chunked_tracks = [all_queued_tracks[i : i + 5] for i in range(0, len(all_queued_tracks), 5)]
 
