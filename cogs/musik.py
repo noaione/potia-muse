@@ -15,3 +15,7 @@ class MusikTemp(commands.Cog):
             "Semua perintah tetap sama tanpa perubahan, kecuali anda harus gunakan prefix naoTimes"
             " sekarang, bukan prefix Potia"
         )
+
+
+def setup(bot: PotiaBot):
+    bot.add_cog(MusikTemp(bot))
