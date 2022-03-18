@@ -105,6 +105,7 @@ class AlumniRole(commands.Cog):
 
     @commands.command(name="berialumni")
     @commands.guild_only()
+    @commands.has_permissions(administrator=True)
     async def _beri_alumni_cmd(self, ctx: commands.Context, target: commands.MemberConverter):
         """
         Beri alumni role kepada user yang memiliki member role.
@@ -124,6 +125,7 @@ class AlumniRole(commands.Cog):
 
     @commands.command(name="berisemuaalumni")
     @commands.guild_only()
+    @commands.has_permissions(administrator=True)
     async def _beri_semua_alumni_cmd(self, ctx: commands.Context):
         """
         Beri alumni role kepada semua member yang memiliki member role.
