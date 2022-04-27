@@ -40,7 +40,7 @@ class NSCog(commands.Cog):
         embed = discord.Embed(title="💳 Nitro Scam", color=discord.Color.dark_red(), timestamp=self.bot.now())
         desc = [f"**User**: {u.mention} ({u.id})", f"**Total pesan**: {c} pesan"]
         embed.description = "\n".join(desc)
-        embed.set_thumbnail(url=u.avatar)
+        embed.set_thumbnail(url=u.display_avatar)
         embed.set_footer(text="💳 Nitro Scam")
         await d.send(embed=embed)
 

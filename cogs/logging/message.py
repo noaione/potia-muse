@@ -104,7 +104,7 @@ class LoggingMessage(commands.Cog):
             "author": {
                 "id": before.author.id,
                 "name": before.author.name,
-                "avatar": str(before.author.avatar),
+                "avatar": str(before.author.display_avatar),
             },
             "channel": {"id": before.channel.id, "name": before.channel.name},
             "before": before.content,
@@ -169,7 +169,7 @@ class LoggingMessage(commands.Cog):
             "author": {
                 "id": message.author.id,
                 "name": str(message.author),
-                "avatar": str(message.author.avatar),
+                "avatar": str(message.author.display_avatar),
             },
             "content": real_content,
         }

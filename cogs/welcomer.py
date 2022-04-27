@@ -43,7 +43,7 @@ class UserWelcomer(commands.Cog):
             real_members += 1
 
         self.logger.info(f"{member}: Welcoming member #{real_members + 1}, reading avatar...")
-        wilkomen = WelcomerCard(member.name, member.discriminator, member.avatar.url)
+        wilkomen = WelcomerCard(member.name, member.discriminator, member.display_avatar.url)
 
         generated_img = await self._generate_image(wilkomen)
 
