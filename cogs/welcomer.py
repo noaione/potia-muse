@@ -16,6 +16,20 @@ class UserWelcomer(commands.Cog):
         self.logger = logging.getLogger("cogs.UserWelcomer")
         self._guild: discord.Guild = self.bot.get_guild(864004899783180308)
 
+    async def _generate_image(self, _welcome_req: WelcomerCard):
+        req_data = {
+            "u": _welcome_req.username,
+            "ud": _welcome_req.discriminator,
+            "avatar": _welcome_req.avatar,
+        }
+        async with self.bot.aiosession.post(
+            "https://naotimes-og.glitch.me/_gen/muse-welcome", json=req_data
+        ) as resp:
+            if resp.status != 200:
+                return None
+            image_data = await resp.read()
+            return image_data
+
     async def _generate_messages_and_files(
         self, member: discord.Member
     ) -> Tuple[str, discord.Embed, discord.File]:
@@ -29,15 +43,9 @@ class UserWelcomer(commands.Cog):
             real_members += 1
 
         self.logger.info(f"{member}: Welcoming member #{real_members + 1}, reading avatar...")
-        avatar_full = await member.avatar.read()
-        avatar_b64 = _bytes_to_base64_data(avatar_full)
-        wilkomen = WelcomerCard(member.name, member.discriminator, avatar_b64)
+        wilkomen = WelcomerCard(member.name, member.discriminator, member.avatar.url)
 
-        generated_img = None
-        try:
-            generated_img = await self.bot.puppet.generate("welcomer", wilkomen)
-        except Exception:
-            pass
+        generated_img = await self._generate_image(wilkomen)
 
         self.logger.info(f"{member}: avatar generated, sending back result...")
         welcome_msg = f"Halo {member.mention}! Selamat datang di Peladen Resmi Muse Indonesia!\n"
@@ -48,13 +56,12 @@ class UserWelcomer(commands.Cog):
         embed = discord.Embed(title="Selamat datang!", timestamp=self.bot.now())
         embed.description = "Lihat <#864018800743940108> untuk mengakses kanal lainnya!"
         embed.set_footer(text="Masuk pada")
-        embed.set_image(url=f"attachment://WelcomeCard.{member.id}.png")
+        image_file = None
+        if generated_img is not None:
+            image_file = discord.File(fp=BytesIO(generated_img), filename=f"WelcomeCard.{member.id}.png")
+            embed.set_image(url=f"attachment://WelcomeCard.{member.id}.png")
 
-        return (
-            welcome_msg,
-            embed,
-            discord.File(fp=BytesIO(generated_img), filename=f"WelcomeCard.{member.id}.png"),
-        )
+        return welcome_msg, embed, image_file
 
     @commands.Cog.listener("on_member_join")
     async def _welcome_people(self, member: discord.Member):

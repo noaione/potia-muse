@@ -15,7 +15,6 @@ from discord.ext import commands
 from .config import PotiaBotConfig
 from .events import EventManager
 from .modlog import PotiaModLog
-from .puppeeter import PuppeeterGenerator
 from .redis import RedisBridge
 from .utils import __version__, explode_filepath_into_pieces, prefixes_with_data
 from .welcomer import WelcomeGenerator
@@ -44,7 +43,6 @@ class PotiaBot(commands.Bot):
 
         self._modlog_channel: discord.TextChannel = None
         self.redis: RedisBridge = None
-        self.puppet: PuppeeterGenerator = None
         self.pevents: EventManager = None
         self.aiosession: aiohttp.ClientSession = None
 
@@ -93,11 +91,6 @@ class PotiaBot(commands.Bot):
         for srv, pre in srv_prefixes.items():
             fmt_prefixes[srv[9:]] = pre
 
-        self.logger.info("Preparing puppeeter")
-        puppet_gen = PuppeeterGenerator(self.loop)
-        await puppet_gen.init()
-        await puppet_gen.bind(WelcomeGenerator)
-        self.puppet = puppet_gen
         self.logger.info("Binding new prefixes...")
         prefixes = functools.partial(prefixes_with_data, prefixes_data=fmt_prefixes, default=self.prefix)
         self.command_prefix = prefixes
@@ -129,9 +122,6 @@ class PotiaBot(commands.Bot):
         if self.pevents:
             self.logger.info("Closing event manager...")
             await self.pevents.close()
-        if self.puppet:
-            self.logger.info("Closing puppeteer")
-            await self.puppet.close()
 
         if self.aiosession:
             self.logger.info("Closing aiohttp Session...")
